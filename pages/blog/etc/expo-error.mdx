@@ -1,0 +1,84 @@
+# pnpm expo router error
+
+## 내용
+
+프로젝트는 pnpm과 turborepo로 구성되어 있었습니다. Expo 앱을 추가하기 위해 [Expo Docs | monorepos](https://docs.expo.dev/guides/monorepos/) 가이드에 따라 다음과 같이 프로젝트에 앱을 추가했습니다.
+
+```bash
+pnpm create expo apps/something-app
+```
+
+앱을 생성한 후, 다음과 같이 `package.json`이 추가됩니다.
+
+```json
+{
+  "name": "somthing-app",
+  "main": "expo-router/entry",
+  "dependencies": {
+    "expo-router": "~3.5.23",
+    ...
+  }
+}
+```
+
+[Expo Docs | monorepos](https://docs.expo.dev/guides/monorepos/)에 따라 Expo 앱에 metro config를 추가합니다.
+
+```javascript
+const { getDefaultConfig } = require('expo/metro-config')
+const path = require('path')
+
+const projectRoot = __dirname
+const monorepoRoot = path.resolve(projectRoot, '../..')
+
+const config = getDefaultConfig(projectRoot)
+
+config.watchFolders = [monorepoRoot]
+config.resolver.nodeModulesPaths = [
+  path.resolve(projectRoot, 'node_modules'),
+  path.resolve(monorepoRoot, 'node_modules'),
+]
+
+module.exports = config
+```
+
+`expo start` 이후 Android 에뮬레이터로 확인해보면 다음과 같은 에러를 마주하게 됩니다.
+
+![에뮬레이터 에러](http://www.fe-dudu.com/expo-error.png)
+
+로그를 확인해보면 `node_modules/.pnpm` 폴더 내부에 `expo-router` 라이브러리를 제대로 import하지 못하는 문제가 발생하는 것 같습니다.
+
+[Expo Docs | monorepos](https://docs.expo.dev/guides/monorepos/)를 확인해보면 다음과 같은 문구가 존재합니다.
+
+> "We currently have first-class support for Yarn 1 (Classic) workspaces."
+
+모노레포(bun, yarn, npm, pnpm)를 지원하긴 하지만 Yarn Classic을 가장 우선적으로 지원한다고 명시되어 있습니다.
+
+pnpm을 사용하면서 생긴 문제로 짐작되며, 관련 내용을 검색하여 expo-router repository의 issue에서 해답을 찾았습니다.
+
+[Expo router | Git issues-748](https://github.com/expo/router/issues/748)에 적힌 것처럼, `package.json`에서 `main`을 제거합니다.
+
+```json
+{
+  "name": "somthing-app",
+  "dependencies": {
+    "expo-router": "~3.5.23",
+    ...
+  }
+}
+```
+
+그리고 Expo 앱 루트에 `index.js` 파일을 추가합니다.
+
+```javascript
+import 'expo-router/entry'
+```
+
+해당 내용을 적용하면 Expo 앱이 정상적으로 동작합니다. 그러나 왜 iOS에서는 해당 에러가 발생하지 않고 Android에서만 에러가 발생하는지는 찾지 못했습니다.
+
+[React-native Blog | Use a framework to build React Native apps](https://reactnative.dev/docs/getting-started) 해당 글을 확인해보면 새로운 React Native 앱을 개발할 때 Expo framework를 사용하는 것이 권장되긴 하지만 아직 모노레포를 원활하게 지원하지 못하는 것으로 보아 Expo 생태계가 아직 성숙하진 않구나라는 것을 느꼈습니다.
+
+## 참고 자료
+
+- [Expo router | Git issues-748](https://github.com/expo/router/issues/748)
+- [Expo Docs | monorepos](https://docs.expo.dev/guides/monorepos/)
+- [React-native Blog | Use a framework to build React Native apps](https://reactnative.dev/docs/getting-started)

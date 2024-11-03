@@ -1,0 +1,76 @@
+# Cache control
+
+Next.js(v14)는 가능한 많은 캐싱을 통해 웹 애플리케이션의 성능을 최적화합니다. 캐싱은 주로 HTTP 응답 헤더의 `Cache-Control`을 통해 관리됩니다.
+
+## Next.js Cache-Control
+
+Next.js에서 주로 사용되는 `Cache-Control` 값은 다음과 같습니다:
+
+- **public**: CDN 저장 가능, 공유 가능합니다.
+- **private**: 브라우저 캐싱만 가능. 초기 페이지 진입 시 사용됩니다.
+- **immutable**: 불변 리소스.
+- **no-cache**: 캐싱하되 서버 재검증 필요.
+- **no-store**: 캐싱하지 않음.
+- **max-age**: 클라이언트 유효 캐시 시간(초). 예: `31536000`은 1년을 의미합니다.
+- **s-maxage**: CDN 유효 캐시 시간(초).
+- **stale-while-revalidate**: 캐시가 만료된 후에도 재검증 중 기존 콘텐츠 제공 가능.
+
+## Next.js 응답 종류 별 Cache Control
+
+| 응답 종류                   | public | immutable | max-age(s) | s-maxage | stale-while-revalidate |
+| --------------------------- | ------ | --------- | ---------- | -------- | ---------------------- |
+| Static file                 | ✅     | ✅        | 1년        |          |                        |
+| Chunk file                  | ✅     | ✅        | 1년        |          |                        |
+| SSG                         |        |           |            | 1년      | ✅                     |
+| SSR                         |        |           |            |          |                        |
+| ISR                         |        |           |            | 1초      | ✅                     |
+| API route                   |        |           |            |          |                        |
+| Dynamic route               |        |           |            |          |                        |
+| Dynamic route + Static Path |        |           |            | 1년      | ✅                     |
+| middleware                  |        |           |            |          |                        |
+
+## 각 응답 종류 특징
+
+1. **Static File**
+
+   - 1년간 CDN 및 브라우저 캐시에 캐싱되며 불변합니다.
+   - 이미지, 폰트, SVG, JSON 등 다양한 파일을 포함합니다.
+
+2. **Chunk File**
+
+   - 1년간 CDN 및 브라우저 캐시에 캐싱되며 불변합니다.
+   - 사용되는 JS 및 CSS 파일이 포함됩니다.
+   - 고유 해시 값을 포함한 파일 이름을 가집니다.
+
+3. **SSG (Static Site Generation)**
+
+   - CDN에서 1년 동안 캐시됩니다.
+   - 캐시 만료 후 재검증 중 기존 콘텐츠 제공 가능.
+
+4. **SSR (Server Side Rendering)**
+
+   - 기본적으로 캐시되지 않으며, `unstable_cache`, `revalidate` 메소드를 통해 캐싱 조작 가능합니다.
+   - 내장 `fetch` API 사용 시 캐싱 설정 가능:
+     ```javascript
+     fetch('https://...', { next: { revalidate: 3600 } }) // 시간 기반 캐싱
+     ```
+
+5. **ISR (Incremental Site Regeneration)**
+
+   - CDN에서 1년 동안 캐시됩니다.
+   - 캐시 만료 후 재검증 중 기존 콘텐츠 제공 가능.
+
+6. **API Route**
+
+   - 기본적으로 캐시되지 않으며, `revalidate`를 통한 캐싱 및 시간 기반 재검증 가능합니다.
+
+7. **Dynamic Route**
+
+   - 기본적으로 캐시되지 않습니다.
+
+8. **Dynamic Route + Static Path**
+
+   - CDN에서 1년 동안 캐시되며 캐시 만료 후 재검증 중 기존 콘텐츠 제공 가능.
+
+9. **Middleware**
+   - 기본적으로 캐시되지 않습니다.

@@ -1,0 +1,17 @@
+# Dependencies
+
+## package.json 란?
+
+`package.json` 파일은 프로젝트 관련 meta data(예: 프로젝트 이름, 패키지 종속성, 버전 번호, 스크립트, 저장소 링크 등)를 포함합니다. 터미널에서 `npm init` 명령을 사용하면 생성됩니다.
+
+## Dependencies 란?
+
+`Dependencies` 섹션에는 프로젝트 production 단계에서만 사용되는 모든 패키지가 포함됩니다.
+
+## DevDependencies 란?
+
+`DevDependencies`에는 development 단계에서 프로젝트에 사용되지만 production 단계에서는 사용되지 않는 모든 패키지가 포함됩니다. 예를 들어, `@playwright/test`는 테스트 라이브러리이고, `@commitlint/cli`는 Git 커밋 메시지의 형식을 검증하는 데 사용됩니다. 이들 패키지는 모두 프로덕션 단계에서는 사용되지 않습니다.
+
+## PeerDependencies 란?
+
+`PeerDependencies`는 패키지가 다른 패키지에 의존하지만, 이를 사용하는 프로젝트에서 해당 종속성을 별도로 설치해야 한다고 예상하는 경우에 사용됩니다.

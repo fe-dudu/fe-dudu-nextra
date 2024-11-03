@@ -1,0 +1,95 @@
+# Swagger to typescript
+
+HTTP Basic Authentication이 적용된 OpenAPI 3.0의 Swagger에서 YAML 파일을 얻고, `openapi-typescript`를 통해 전체 타입을 추출하는 방법을 설명하겠습니다. 또한, binary string type의 경우 `File` 타입으로 변환하는 예제도 포함됩니다.
+
+## 예제 코드
+
+아래는 YAML 파일을 추출하고 타입스크립트 타입을 생성하는 코드입니다.
+
+```js filename="./scripts/swagger-to-api-types.mjs"
+import fs from 'fs'
+import openapiTS from 'openapi-typescript'
+import ts from 'typescript'
+;(async () => {
+  const url = 'https://www.your-api-url.com/openapi.yaml'
+  const username = 'username'
+  const password = 'password'
+
+  const res = await fetch(url, {
+    headers: {
+      Authorization: `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`,
+    },
+  })
+
+  const schema = await res.text()
+
+  const FILE = ts.factory.createTypeReferenceNode(ts.factory.createIdentifier('File'))
+  const NULL = ts.factory.createLiteralTypeNode(ts.factory.createNull())
+
+  const types = await openapiTS(schema, {
+    transform(schemaObject) {
+      if ('format' in schemaObject && schemaObject.format === 'binary') {
+        return ts.factory.createUnionTypeNode([FILE, NULL])
+      }
+    },
+  })
+
+  const printer = ts.createPrinter({ newLine: ts.NewLineKind.LineFeed })
+  const sourceFile = ts.createSourceFile('generated-types.ts', '', ts.ScriptTarget.Latest, false, ts.ScriptKind.TS)
+
+  const result = types.map((node) => printer.printNode(ts.EmitHint.Unspecified, node, sourceFile)).join('\n\n')
+
+  fs.writeFileSync('types/api-types.ts', result)
+})()
+```
+
+### 코드 설명
+
+1. **API Swagger YAML 파일 URL을 가져옵니다.**
+2. **HTTP Basic Authentication을 위한 username과 password를 사용하여 Base64로 인코딩한 헤더를 포함합니다.**
+3. **YAML 파일을 가져옵니다.**
+4. **string binary 타입일 경우 대체할 `File` 및 `null` 타입을 준비합니다.**
+5. **`openapi-typescript`의 내장 transform 메소드를 사용하여 string binary를 `File | null` 타입으로 변환합니다.**
+6. **타입스크립트 형태로 변환합니다.**
+7. **`types` 폴더에 저장합니다.**
+
+## API 타입 사용 예시
+
+아래는 저장된 타입을 기반으로 API를 호출하는 예시입니다.
+
+```javascript
+import { paths } from "@/types/api-types";
+
+export const fetchPosts = async (): Promise<
+  paths["/posts"]["get"]["responses"]["200"]["content"]["application/json"]["data"]
+> => {
+  return fetch("https://www.your-api-url.com/post", {})
+    .then((res) => res.json())
+    .then((res) => res.data);
+};
+```
+
+이제 Swagger에서 추출한 타입을 일일이 interface나 type으로 옮길 필요 없이 쉽게 활용할 수 있습니다!
+
+### `package.json` 설정
+
+아래는 `package.json`의 설정 예시입니다.
+
+```json
+{
+  ...
+  "scripts": {
+    "generate-api-types": "node ./scripts/swagger-to-api-types.mjs"
+  },
+  "devDependencies": {
+    "openapi-typescript": "^7.4.0"
+  }
+}
+```
+
+이제 `npm run generate-api-types` 명령을 통해 손쉽게 타입을 추출할 수 있습니다.
+
+## 참고 자료
+
+- [openapi-ts | Docs](https://openapi-typescript.github.io/)
+- [swagger | Docs](https://swagger.io/docs/)

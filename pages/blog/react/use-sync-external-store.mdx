@@ -1,0 +1,82 @@
+# useSyncExternalStore
+
+## 목적
+
+`useSyncExternalStore`는 Concurrent Mode 및 External Store 사용 시 발생하는 상태 불일치(Tearing) 문제를 해결하기 위해 도입된 훅입니다.
+
+## 주요 개념
+
+- **Tearing**: UI 상태가 의도치 않게 일관성이 없는 상태로 렌더링되는 현상입니다.
+- **Concurrent Mode**: 더 매끄럽고 응답성 있게 업데이트할 수 있도록 비동기 렌더링을 지원하는 새로운 렌더링 모드입니다. `startTransition`, `useTransition`을 사용하여 업데이트 함수의 우선 순위를 낮추어 Concurrent Mode를 활성화할 수 있습니다. 또한, `useDeferredValue`를 사용하여 값에 대한 업데이트 우선 순위를 낮출 수 있습니다.
+- **External Store**: 리액트의 내부 상태 관리 API(`useState`, `useReducer`)가 아닌 외부 상태 관리 라이브러리(예: MobX, Redux, Recoil 등), Web API, 전역 변수 등을 의미합니다.
+
+## 사용 방법
+
+다음은 `useSyncExternalStore`를 전역 변수와 함께 사용하는 방법입니다.
+
+```typescript
+export type TodoItem = {
+  id: string
+  content: string
+}
+
+export type TodoData = {
+  todos: TodoItem[]
+}
+
+let store: TodoData = {
+  todos: [],
+}
+
+export type TodoReducerAction = { type: 'ADD'; todo: TodoItem } | { type: 'REMOVE'; todoId: string }
+
+export function todoReducer(state: TodoData, action: TodoReducerAction): TodoData {
+  switch (action.type) {
+    case 'ADD': {
+      return {
+        ...state,
+        todos: [...state.todos, action.todo],
+      }
+    }
+    case 'REMOVE': {
+      return {
+        ...state,
+        todos: state.todos.filter((todo) => todo.id !== action.todoId),
+      }
+    }
+  }
+}
+
+export function dispatchTodo(action: TodoReducerAction) {
+  store = todoReducer(store, action)
+  emitChangeListener()
+}
+
+let listeners: Array<() => void> = []
+
+function emitChangeListener() {
+  for (const listener of listeners) {
+    listener()
+  }
+}
+
+export const registerTodoStore = {
+  subscribe(listener: () => void) {
+    listeners = [...listeners, listener]
+
+    return () => {
+      listeners = listeners.filter((l) => l !== listener)
+    }
+  },
+  getSnapshot() {
+    return store
+  },
+}
+
+export function useSyncTodoStore() {
+  const { subscribe, getSnapshot } = registerTodoStore
+  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
+}
+```
+
+이 코드는 `useSyncExternalStore`를 사용하여 외부 상태와 동기화된 store를 만드는 방법을 보여줍니다. 상태 변화에 따라 리렌더링할 수 있도록 구독(listener)을 설정하고, 현재 상태의 스냅샷을 반환합니다.

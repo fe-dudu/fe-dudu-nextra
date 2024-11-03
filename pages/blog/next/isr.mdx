@@ -1,0 +1,35 @@
+# ISR
+
+Incremental Static Regeneration (ISR) 필요한 상황에 대해 알아봅니다.
+
+## Next.js ISR Flow
+
+다음은 Next.js의 ISR 흐름을 설명하는 예시입니다.
+
+![Next.js ISR flow](https://www.fe-dudu.com/isr-flow.png)
+
+1. 블로그를 보고 싶은 유저가 10,000명이 동시에 있다고 가정하고, 비슷한 시간에 www.example.com/blog/1 페이지로 이동합니다.
+2. 캐시된 페이지가 만료되었거나 (1시간이 지남) 초기 요청이라면 API 서버에 `GET /blog/1`에 대한 정보를 요청하고, SSG로 생성하여 사용자에게 응답합니다.
+3. 캐시되어 있다면 캐시된 페이지를 응답하여 API 서버에 요청하지 않습니다. (10,000번 요청해야 할 것을 네트워크 요청 1번으로 줄일 수 있습니다.)
+
+## ISR이 필요한 상황
+
+- 유저 별로 페이지 정보가 다르지 않을 때
+  - 공지사항
+  - 블로그
+  - 제품 상세
+  - 뉴스 상세
+  - 랭킹 등
+
+## ISR이 불필요한 상황
+
+- 유저 별로 페이지 정보가 다를 때
+  - 장바구니
+  - 마이 페이지
+  - 프로필 설정 등 개인화되거나 사용자 그룹마다 노출되는 정보가 다른 페이지
+
+## 참고 자료
+
+- [Next.js Ko Docs | generateStaticParams](https://nextjs.org/docs/api-reference/data-fetching/generate-static-params)
+- [Next.js Docs | generateStaticParams](https://nextjs.org/docs/api-reference/data-fetching/generate-static-params)
+- [Next.js Docs | Incremental Static Regeneration (ISR)](https://nextjs.org/docs/app/building-your-application/data-fetching/incremental-static-regeneration)

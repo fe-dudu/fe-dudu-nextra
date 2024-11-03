@@ -1,0 +1,453 @@
+# PWA web push notification
+
+이 가이드는 Next.js PWA 환경에서 Firebase 및 Supabase를 사용하여 Web Push API를 설정하는 방법을 안내합니다. Firebase 및 Supabase의 기본 설정은 생략하겠습니다.
+
+## 준비하기
+
+먼저, `next-pwa-web-push`라는 이름의 새 Next.js 프로젝트를 시작합니다.
+
+```bash
+npx create-next-app@latest next-pwa-web-push
+```
+
+필요한 라이브러리를 설치합니다.
+
+```bash
+npm i @serwist/next serwist firebase firebase-admin @supabase/ssr
+```
+
+`package.json` 파일의 의존성 항목은 다음과 같아야 합니다.
+
+```json
+{
+  "dependencies": {
+    "@serwist/next": "^9.0.3",
+    "@supabase/ssr": "latest",
+    "@supabase/supabase-js": "latest",
+    "firebase": "^10.1.0",
+    "firebase-admin": "^12.3.1",
+    "next": "latest"
+  }
+}
+```
+
+## PWA 환경 확인
+
+현재 환경이 PWA인지 확인하는 유틸리티 함수를 만듭니다.
+
+```typescript filename="./utils/device.ts"
+export function isPWA() {
+  return window.matchMedia('(display-mode: standalone)').matches
+}
+```
+
+## 알림 권한 요청 다이얼로그 만들기
+
+PWA 환경일 때 알림 권한을 요청하는 다이얼로그 컴포넌트를 만듭니다.
+
+```typescript filename="./components/dialog/RequestNotificationPermissionDialog.tsx"
+
+"use client";
+
+import { isPWA } from "@/utils/device";
+import {
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogProps,
+  DialogTitle
+} from "@mui/material";
+import { useEffect, useState } from "react";
+
+interface Props extends Omit<DialogProps, "open" | "onClose"> {}
+
+const RequestNotificationPermissionDialog: React.FC<Props> = ({ ...props }) => {
+  const [open, setOpen] = useState<boolean>(false);
+
+  const onClickRequest = () => {
+    Notification.requestPermission().then((permission) => {
+      if (permission === "granted") {
+        setOpen(false);
+      }
+    });
+  };
+
+  useEffect(() => {
+    if ("Notification" in window && Notification.permission !== "granted" && isPWA()) {
+      setOpen(true);
+    }
+  }, []);
+
+  return (
+    <Dialog
+      maxWidth="xs"
+      fullWidth
+      open={open}
+      onClose={() => setOpen(false)}
+      aria-labelledby="dialog-title"
+      aria-describedby="dialog-description"
+      {...props}
+    >
+      <DialogTitle id="dialog-title">권한 요청</DialogTitle>
+      <DialogContent>
+        <DialogContentText id="dialog-description">알림 권한을 허용해주세요.</DialogContentText>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={() => setOpen(false)}>취소</Button>
+        <Button onClick={onClickRequest} autoFocus color="primary" variant="contained">
+          허용
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+};
+
+export default RequestNotificationPermissionDialog;
+```
+
+## Firebase 설정
+
+Firebase 구성 파일을 작성합니다.
+
+```typescript filename="./utils/firebase/index.ts"
+import { initializeApp } from 'firebase/app'
+
+const firebaseConfig = {
+  apiKey: '...',
+  authDomain: '...',
+  databaseURL: '...',
+  projectId: '...',
+  storageBucket: '...',
+  messagingSenderId: '...',
+  appId: '...',
+  measurementId: '...',
+}
+
+const firebaseApp = initializeApp(firebaseConfig)
+export default firebaseApp
+```
+
+## Supabase 설정
+
+Supabase 클라이언트를 설정합니다.
+
+```typescript filename="./utils/supabase/client.ts"
+import { createBrowserClient } from '@supabase/ssr'
+
+export const createClient = () =>
+  createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!)
+
+// utils/supabase/server.ts
+
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { cookies } from 'next/headers'
+
+export const createClient = () => {
+  const cookieStore = cookies()
+
+  return createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
+    cookies: {
+      get(name: string) {
+        return cookieStore.get(name)?.value
+      },
+      set(name: string, value: string, options: CookieOptions) {
+        cookieStore.set({ name, value, ...options })
+      },
+      remove(name: string, options: CookieOptions) {
+        cookieStore.set({ name, value: '', ...options })
+      },
+    },
+  })
+}
+```
+
+## 알림 지원 여부 확인
+
+현재 사용자 환경이 푸시 알림을 수신할 수 있는지 확인합니다.
+
+```typescript filename="./utils/notification.ts"
+export const isNotifySupported = () => {
+  return (
+    typeof window !== 'undefined' &&
+    'serviceWorker' in navigator &&
+    'Notification' in window &&
+    'PushManager' in window &&
+    Notification?.permission === 'granted'
+  )
+}
+```
+
+## FCM 토큰 관리
+
+현재 사용자 환경이 푸시 알림을 수신할 수 있다면 FCM 토큰을 발급하고 supabase에 저장합니다.
+
+```typescript filename="./components/manager/FCMTokenManager.tsx"
+'use client'
+
+import firebaseApp from '@/utils/firebase'
+import { isNotifySupported } from '@/utils/notification'
+import { createClient } from '@/utils/supabase/client'
+import { getMessaging, getToken } from 'firebase/messaging'
+import { useEffect, useState } from 'react'
+
+const FCMTokenManager = () => {
+  const supabase = createClient()
+  const [token, setToken] = useState<string>('')
+
+  useEffect(() => {
+    const retrieveToken = async () => {
+      if (isNotifySupported() && !token) {
+        const messaging = getMessaging(firebaseApp)
+        try {
+          const currentToken = await getToken(messaging, { vapidKey: '...' })
+          await supabase.from('fcm').insert({ token: currentToken })
+          setToken(currentToken)
+        } catch (err) {
+          console.log(err)
+        }
+      }
+    }
+
+    retrieveToken()
+  }, [token])
+
+  return null
+}
+
+export default FCMTokenManager
+```
+
+## 앱 레이아웃 설정
+
+앱의 메인 레이아웃에서 다이얼로그와 FCM 토큰 관리자를 호출합니다.
+
+```typescript filename="./app/layout.tsx"
+
+import RequestNotificationPermissionDialog from "@/components/dialog/RequestNotificationPermissionPermissionDialog";
+import FCMTokenManager from "@/components/manager/FCMTokenManager";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  manifest: "/manifest.json",
+};
+
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html>
+      <body>
+        <FCMTokenManager />
+        <RequestNotificationPermissionDialog />
+        {children}
+      </body>
+    </html>
+  );
+}
+```
+
+## 서비스 워커 설정
+
+PWA를 구축하기 위해 서비스 워커 설정을 추가합니다.
+
+```typescript filename="./app/sw.ts"
+import type { PrecacheEntry, SerwistGlobalConfig } from 'serwist'
+import { Serwist } from 'serwist'
+
+declare global {
+  interface WorkerGlobalScope extends SerwistGlobalConfig {
+    __SW_MANIFEST: Array<PrecacheEntry | string> | undefined
+  }
+}
+
+declare const self: ServiceWorkerGlobalScope
+
+const serwist = new Serwist({
+  precacheEntries: self.__SW_MANIFEST,
+  skipWaiting: true,
+  clientsClaim: true,
+  navigationPreload: true,
+})
+
+serwist.addEventListeners()
+```
+
+## tsconfig.json 설정
+
+```json filename="tsconfig.json"
+{
+  "compilerOptions": {
+    "...": "...",
+    "types": ["...", "@serwist/next/typings"],
+    "lib": ["webworker"]
+  },
+  "exclude": ["public/sw.js"]
+}
+```
+
+## next.config.js 설정
+
+```javascript filename="next.config.js"
+const { PHASE_DEVELOPMENT_SERVER, PHASE_PRODUCTION_BUILD } = require('next/constants')
+
+module.exports = async (phase) => {
+  const nextConfig = {}
+
+  if (phase === PHASE_DEVELOPMENT_SERVER || phase === PHASE_PRODUCTION_BUILD) {
+    const withSerwist = (await import('@serwist/next')).default({
+      swSrc: 'app/sw.ts',
+      swDest: 'public/sw.js',
+      scope: '/',
+    })
+    return withSerwist(nextConfig)
+  }
+
+  return nextConfig
+}
+```
+
+## manifest.json 설정
+
+웹 앱이 앱처럼 설치될 수 있도록 설정 정보를 제공합니다. 로고 이미지가 없다면 public 폴더에 로고 이미지를 추가하세요.
+
+```json
+// public/manifest.json
+{
+  "name": "FE-dudu",
+  "short_name": "FE-dudu",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "384x384",
+      "type": "image/png"
+    }
+  ],
+  "theme_color": "#FFFFFF",
+  "background_color": "#FFFFFF",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "scope": "/"
+}
+```
+
+## Firebase Messaging 서비스 워커 설정
+
+Firebase를 통해 Push 이벤트를 수신할 수 있도록 서비스 워커 파일을 설정합니다. Firebase 설치 버전에 따라 `importScripts`의 버전이 변경될 수 있습니다.
+
+```javascript filename="./public/firebase-messaging-sw.js"
+importScripts('https://www.gstatic.com/firebasejs/10.1.0/firebase-app-compat.js')
+importScripts('https://www.gstatic.com/firebasejs/10.1.0/firebase-messaging-compat.js')
+
+const firebaseConfig = {
+  apiKey: '...',
+  authDomain: '...',
+  databaseURL: '...',
+  projectId: '...',
+  storageBucket: '...',
+  messagingSenderId: '...',
+  appId: '...',
+  measurementId: '...',
+}
+
+firebase.initializeApp(firebaseConfig)
+const messaging = firebase.messaging()
+
+self.addEventListener('push', function (event) {
+  const { title, content } = event.data
+  if (!title || !content) return
+
+  const defaultOptions = {
+    body: event.data.content,
+    badge: '/logo.png',
+    icon: '/logo.png',
+  }
+  event.waitUntil(self.registration.showNotification(event.data.title, defaultOptions))
+})
+```
+
+## Firebase Admin SDK를 통한 푸시 알림 전송
+
+Firebase Admin SDK를 사용하여 사용자에게 푸시 알림을 전송하는 함수를 작성합니다.
+
+```typescript filename="./utils/firebase/admin.ts"
+import admin, { ServiceAccount } from 'firebase-admin'
+
+interface NotificationData {
+  notification: {
+    title: string
+    body: string
+  }
+  token: string
+}
+
+export const sendFCMNotification = async (data: NotificationData) => {
+  const serviceAccount: ServiceAccount = {
+    projectId: '...',
+    privateKey: 'PRIVATE KEY'.replace(/\\n/g, '\n'),
+    clientEmail: '...',
+  }
+
+  if (!admin.apps.length) {
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+    })
+  }
+
+  const res = await admin.messaging().send(data)
+
+  return res
+}
+```
+
+## notification API
+
+PWA 앱을 통해 등록된 모든 토큰(디바이스)에 알림을 보낼 API를 구성합니다.
+
+```typescript filename="./app/api/notification/route.ts"
+import { sendFCMNotification } from '@/utils/firebase/admin'
+import { createClient } from '@/utils/supabase/server'
+
+export async function POST(request: Request) {
+  const res = await request.json()
+  const { title, body } = res
+
+  const supabase = createClient()
+  const { data: tokens, error } = await supabase.from('fcm').select('token').returns<Array<{ token: string }>>()
+
+  if (!tokens || error) {
+    return res.status(404)
+  }
+
+  for (const tokenData of tokens) {
+    await sendFCMNotification({ token: tokenData.token, notification: { title, body } })
+  }
+
+  return new Response('Success!', {
+    status: 200,
+  })
+}
+```
+
+## 앱 배포 및 알림 테스트
+
+앱을 배포한 후 iOS 기준으로 Safari에서 배포된 URL로 이동합니다. 가운데 공유 버튼을 클릭하고 홈 화면에 추가 버튼을 누릅니다. 홈 화면에 추가된 앱을 눌러 권한 요청을 수락합니다. 이제 FCM 토큰이 Supabase 테이블에 저장되었을 것입니다.
+
+## 알림 전송 테스트
+
+터미널에서 다음과 같이 요청을 보내어 알림을 테스트합니다:
+
+```bash
+curl -H "Content-Type: application/json" \
+-d '{
+  "title": "김도현",
+  "body": "test"
+}' \
+-X POST https://www.fe-dudu.com/api/notification
+```
+
+## 참고 자료
+
+- [Supabase Documentation](https://supabase.com/docs)
+- [Firebase Console](https://console.firebase.google.com/)
+- [Serwist Documentation](https://serwist.dev/)

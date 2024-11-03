@@ -1,0 +1,117 @@
+# useEffect data fetching
+
+React-query, SWR과 같은 데이터 페칭 라이브러리를 사용하지 않는 경우 useEffect를 사용하여 데이터를 페칭할 때 네트워크 호출 순서에 맞게 렌더링을 보장하도록 하는 방법에 대해 알아보고자 합니다.
+
+## 방법
+
+```js
+import { useState, useEffect } from 'react'
+import { fetchBio } from './api.js'
+
+export default function Page() {
+  const [person, setPerson] = useState('Alice')
+  const [bio, setBio] = useState(null)
+
+  useEffect(() => {
+    setBio(null)
+
+    fetchBio(person).then((result) => {
+      setBio(result)
+    })
+  }, [person])
+
+  return (
+    <>
+      <select
+        value={person}
+        onChange={(e) => {
+          setPerson(e.target.value)
+        }}
+      >
+        <option value="Alice">Alice</option>
+        <option value="Bob">Bob</option>
+        <option value="Taylor">Taylor</option>
+      </select>
+      <hr />
+      <p>
+        <i>{bio ?? 'Loading...'}</i>
+      </p>
+    </>
+  )
+}
+```
+
+다음과 같이 코드를 작성하고 person이 짧은 시간 내에 지속적으로 변경된다면 마지막으로 선택한 person의 데이터를 갖고 오게 될까요?
+
+fetchBio 호출이 서로 다른 person 값을 기반으로 비동기로 실행됩니다. 이때, 비동기 응답의 도착 순서가 항상 호출 순서와 일치하지 않기 때문에(React Docs에서는 경쟁 상태라고 표현합니다) 잘못된 정보가 화면에 렌더링될 수 있습니다.
+
+이를 해결하려면 다음과 같이 코드를 변경해야 합니다.
+
+```js
+import { useState, useEffect } from 'react'
+import { fetchBio } from './api.js'
+
+export default function Page() {
+  const [person, setPerson] = useState('Alice')
+  const [bio, setBio] = useState(null)
+
+  useEffect(() => {
+    let ignore = false
+    setBio(null)
+    fetchBio(person).then((result) => {
+      if (!ignore) {
+        setBio(result)
+      }
+    })
+    return () => {
+      ignore = true
+    }
+  }, [person])
+
+  return (
+    <>
+      <select
+        value={person}
+        onChange={(e) => {
+          setPerson(e.target.value)
+        }}
+      >
+        <option value="Alice">Alice</option>
+        <option value="Bob">Bob</option>
+        <option value="Taylor">Taylor</option>
+      </select>
+      <hr />
+      <p>
+        <i>{bio ?? 'Loading...'}</i>
+      </p>
+    </>
+  )
+}
+```
+
+다음과 같이 코드를 작성하면 비동기 데이터 요청의 순서가 보장되는 이유는 무엇일까요?
+
+### ignore 지역 변수 사용
+
+- ignore라는 로컬 변수를 사용하여 현재 비동기 요청의 유효성을 제어합니다.
+- useEffect의 정리(clean-up) 함수에서 ignore를 true로 설정합니다.
+
+### 정리 함수(Cleanup Function)
+
+- useEffect 내에서 정리 함수가 반환되고, 이 함수는 컴포넌트가 언마운트되거나 person 상태가 변경될 때 실행됩니다.
+- 정리 함수에서 ignore를 true로 설정하여 이전 비동기 작업의 응답이 도착했을 때, 해당 응답을 무시하도록 합니다.
+
+### 코드 흐름
+
+- fetchBio 함수가 호출될 때마다 새로운 비동기 요청이 생성됩니다.
+- 만약 person 상태가 변경되면, useEffect가 재실행되고, 이전 useEffect 호출에서 설정된 ignore 변수가 true로 설정됩니다.
+- 비동기 요청이 응답을 반환할 때, ignore 변수가 true라면 해당 응답을 무시하고 setBio를 호출하지 않습니다.
+
+따라서, 이전 비동기 요청의 응답은 무시되고, 최신 요청에 대한 응답만 처리되므로, 최종적으로 최신 상태에 대한 응답만이 적용됩니다.
+
+특별한 경우가 아니라면 React-Query를 사용합시다!
+
+## 참고 자료
+
+- [React Docs | useEffect](https://reactjs.org/docs/hooks-effect.html)
+- [Fixing Race Conditions in React with useEffect](https://reactjs.org/docs/hooks-reference.html#useeffect)

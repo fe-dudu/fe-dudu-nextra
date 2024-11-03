@@ -1,0 +1,290 @@
+# You Might Not Need an Effect
+
+[React Docs | you might not need an effect](https://reactjs.org/docs/hooks-effect.html) 글을 번역하고 정리합니다.
+
+## props 또는 state에 따라 state 업데이트
+
+```javascript
+function Form() {
+  const [firstName, setFirstName] = useState('Taylor')
+  const [lastName, setLastName] = useState('Swift')
+  const [fullName, setFullName] = useState('')
+
+  useEffect(() => {
+    setFullName(firstName + ' ' + lastName)
+  }, [firstName, lastName])
+  // ...
+}
+```
+
+비효율적인 상태 변경 코드의 예시입니다. 아래와 같이 리팩토링하는 것을 권장합니다.
+
+```javascript
+function Form() {
+  const [firstName, setFirstName] = useState('Taylor')
+  const [lastName, setLastName] = useState('Swift')
+  const fullName = firstName + ' ' + lastName
+  // ...
+}
+```
+
+위와 같이 렌더링 중에 계산하도록 코드를 변경하면 더 빨라지고, 더 단순해지며, 오류가 덜 발생합니다.
+
+## Effects 없이 비싼 계산을 캐시하는 방법
+
+```javascript
+function TodoList({ todos, filter }) {
+  const [newTodo, setNewTodo] = useState('')
+  const [visibleTodos, setVisibleTodos] = useState([])
+
+  useEffect(() => {
+    setVisibleTodos(getFilteredTodos(todos, filter))
+  }, [todos, filter])
+  // ...
+}
+```
+
+비효율적인 상태 변경 코드의 예시입니다. 아래와 같이 리팩토링하는 것을 권장합니다.
+
+```javascript
+function TodoList({ todos, filter }) {
+  const [newTodo, setNewTodo] = useState('')
+  const visibleTodos = getFilteredTodos(todos, filter)
+  // ...
+}
+```
+
+나쁘지 않은 리팩토링입니다. 그러나 `getFilteredTodos` 메소드가 느리거나 너무 많은 관련 없는 상태가 변경되어 다시 계산이 될 경우 `useMemo`를 통해 개선할 수 있습니다.
+
+```javascript
+import { useMemo, useState } from 'react'
+
+function TodoList({ todos, filter }) {
+  const [newTodo, setNewTodo] = useState('')
+  const visibleTodos = useMemo(() => getFilteredTodos(todos, filter), [todos, filter])
+  // ...
+}
+```
+
+다음과 같이 리팩토링하면 `todos`, `filter`가 변경될 때에만 다시 계산하는 것을 보장할 수 있습니다. 대신 성능 문제를 겪는 것이 보장될 때 `useMemo`를 통해 최적화를 진행하는 것이 좋습니다.
+
+계산이 비싼지 어떻게 알 수 있나요?
+
+```javascript
+console.time('filter array')
+const visibleTodos = getFilteredTodos(todos, filter)
+console.timeEnd('filter array')
+```
+
+다음과 같이 시간을 측정했을 때 1ms 이상일 경우 계산이 비싸다고 간주하고 최적화를 진행합니다.
+
+## prop이 변경될 때 모든 상태 재설정
+
+```javascript
+export default function ProfilePage({ userId }) {
+  const [comment, setComment] = useState('')
+
+  useEffect(() => {
+    setComment('')
+  }, [userId])
+  // ...
+}
+```
+
+비효율적인 상태 변경 코드의 예시입니다. 아래와 같이 리팩토링하는 것을 권장합니다.
+
+```javascript
+export default function ProfilePage({ userId }) {
+  return <Profile userId={userId} key={userId} />
+}
+
+function Profile({ userId }) {
+  const [comment, setComment] = useState('')
+  // ...
+}
+```
+
+`ProfilePage`에서 `key` 속성을 부여하여 `userId`가 달라질 때 이전 상태를 제거하고, 상태를 초기화하여 새롭게 렌더링되도록 합니다.
+
+## 소품이 변경될 때 일부 상태 조정
+
+```javascript
+function List({ items }) {
+  const [isReverse, setIsReverse] = useState(false)
+  const [selection, setSelection] = useState(null)
+
+  useEffect(() => {
+    setSelection(null)
+  }, [items])
+  // ...
+}
+```
+
+비효율적인 상태 변경 코드의 예시입니다. 아래와 같이 리팩토링하는 것을 권장합니다.
+
+```javascript
+function List({ items }) {
+  const [isReverse, setIsReverse] = useState(false)
+  const [selection, setSelection] = useState(null)
+  const [prevItems, setPrevItems] = useState(items)
+
+  if (items !== prevItems) {
+    setPrevItems(items)
+    setSelection(null)
+  }
+
+  // ...
+}
+```
+
+다음과 같이 작성하면 `useEffect`를 제거하고 순수한 상태 업데이트에만 집중할 수 있습니다.
+
+## 부모 구성 요소에 변경 사항을 알리는 방법
+
+```javascript
+function Toggle({ onChange }) {
+  const [isOn, setIsOn] = useState(false)
+
+  useEffect(() => {
+    onChange(isOn)
+  }, [isOn, onChange])
+
+  function handleClick() {
+    setIsOn(!isOn)
+  }
+
+  function handleDragEnd(e) {
+    if (isCloserToRightEdge(e)) {
+      setIsOn(true)
+    } else {
+      setIsOn(false)
+    }
+  }
+
+  // ...
+}
+```
+
+비효율적인 상태 변경 코드의 예시입니다. 아래와 같이 리팩토링하는 것을 권장합니다.
+
+```javascript
+function Toggle({ onChange }) {
+  const [isOn, setIsOn] = useState(false)
+
+  function updateToggle(nextIsOn) {
+    setIsOn(nextIsOn)
+    onChange(nextIsOn)
+  }
+
+  function handleClick() {
+    updateToggle(!isOn)
+  }
+
+  function handleDragEnd(e) {
+    if (isCloserToRightEdge(e)) {
+      updateToggle(true)
+    } else {
+      updateToggle(false)
+    }
+  }
+
+  // ...
+}
+```
+
+`Effect`를 제거하고, 동일한 `updateToggle` 이벤트 핸들러 내에서 두 컴포넌트의 상태를 함께 업데이트하는 것이 더 나은 방법입니다.
+
+## 부모 구성 요소에 데이터 전달
+
+```javascript
+function Parent() {
+  const [data, setData] = useState(null)
+  // ...
+  return <Child onFetched={setData} />
+}
+
+function Child({ onFetched }) {
+  const data = useSomeAPI()
+
+  useEffect(() => {
+    if (data) {
+      onFetched(data)
+    }
+  }, [onFetched, data])
+
+  // ...
+}
+```
+
+데이터는 부모에서 자식에게로 흘러야 합니다. 해당 컴포넌트는 잘못된 데이터 흐름과 Effect를 사용하고 있습니다.
+
+```javascript
+function Parent() {
+  const data = useSomeAPI()
+  // ...
+  return <Child data={data} />
+}
+
+function Child({ data }) {
+  // ...
+}
+```
+
+데이터는 부모에서 자식으로 내려가고 불필요한 상태와 Effect를 제거합니다.
+
+## 외부 스토어 구독
+
+```javascript
+function useOnlineStatus() {
+  const [isOnline, setIsOnline] = useState(true)
+
+  useEffect(() => {
+    function updateState() {
+      setIsOnline(navigator.onLine)
+    }
+
+    updateState()
+
+    window.addEventListener('online', updateState)
+    window.addEventListener('offline', updateState)
+    return () => {
+      window.removeEventListener('online', updateState)
+      window.removeEventListener('offline', updateState)
+    }
+  }, [])
+  return isOnline
+}
+
+function ChatIndicator() {
+  const isOnline = useOnlineStatus()
+  // ...
+}
+```
+
+React에 종속적이지 않은 외부 스토어나 API를 구독할 경우 `useEffect`보다 `useSyncExternalStore`가 권장됩니다.
+
+```javascript
+function subscribe(callback) {
+  window.addEventListener('online', callback)
+  window.addEventListener('offline', callback)
+  return () => {
+    window.removeEventListener('online', callback)
+    window.removeEventListener('offline', callback)
+  }
+}
+
+function useOnlineStatus() {
+  return useSyncExternalStore(
+    subscribe,
+    () => navigator.onLine,
+    () => true
+  )
+}
+
+function ChatIndicator() {
+  const isOnline = useOnlineStatus()
+  // ...
+}
+```
+
+다음과 같이 리팩토링하여 외부 스토어를 구독하는 것이 오류가 덜 발생합니다.
