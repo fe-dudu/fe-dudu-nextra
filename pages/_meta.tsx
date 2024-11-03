@@ -19,4 +19,8 @@ export default {
     type: 'page',
     title: 'Article',
   },
+  inspiration: {
+    type: 'page',
+    title: 'Inspiration',
+  },
 }
