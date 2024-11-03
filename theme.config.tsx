@@ -7,9 +7,9 @@ const config: DocsThemeConfig = {
     return <Image src="/logo.png" width={40} height={40} alt="dudu logo" />
   },
   project: {
-    link: 'https://github.com/fe-dudu/blog',
+    link: 'https://github.com/fe-dudu/fe-dudu-nextra',
   },
-  docsRepositoryBase: 'https://github.com/fe-dudu/blog',
+  docsRepositoryBase: 'https://github.com/fe-dudu/fe-dudu-nextra/blob/main',
   head: function () {
     const config = useConfig()
     const { asPath } = useRouter()
