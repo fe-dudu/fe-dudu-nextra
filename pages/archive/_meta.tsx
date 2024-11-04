@@ -1,5 +1,5 @@
 export default {
-  'react-imperative-programming': {
-    title: 'React imperative programming',
+  'react-declarative-programming': {
+    title: 'React declarative programming',
   },
 }
