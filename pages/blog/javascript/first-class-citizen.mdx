@@ -1,0 +1,29 @@
+# First class citizen
+
+- **변수나 데이터 구조 안에 담을 수 있다.**
+```js
+const greet = function() {
+  console.log("Hello");
+};
+```
+
+- **인자로 전달할 수 있다.**
+```js
+function sayHello(greetingFunction) {
+  greetingFunction();
+}
+
+sayHello(greet); // "Hello"
+```
+
+- **반환값으로 사용할 수 있다.**
+```js
+function createGreeting() {
+  return function() {
+    console.log("Hello from returned function!");
+  };
+}
+
+const greeting = createGreeting();
+greeting(); // "Hello from returned function!"
+```

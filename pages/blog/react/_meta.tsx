@@ -1,4 +1,7 @@
 export default {
+  context: {
+    title: 'Context API 사용하는 3가지 방법'
+  },
   'use-effect': {
     title: 'useEffect 3가지 사용 패턴',
   },

@@ -1,0 +1,114 @@
+# Context API 사용하는 3가지 방법
+
+1. **[React 공식 문서](https://react.dev/reference/react/createContext#provider)에서 권장하는 useContext**
+```js
+import React, { createContext, useContext, useState } from 'react';
+
+const UserContext = createContext(null);
+
+const UserProvider = ({ children }) => {
+  const [user, setUser] = useState({ name: 'John Doe', age: 30 });
+  
+  return (
+    <UserContext.Provider value={user}>
+      {children}
+    </UserContext.Provider>
+  );
+};
+
+const useUser = () => {
+  return useContext(UserContext);
+};
+
+const UserProfile = () => {
+  const user = useUser();
+
+  return (
+    <div>
+      <h1>{user.name}</h1>
+      <p>Age: {user.age}</p>
+    </div>
+  );
+};
+
+const App = () => (
+  <UserProvider>
+    <UserProfile />
+  </UserProvider>
+);
+
+export default App;
+```
+
+2. **🚧 권장되지 않는 Consumer**
+```js
+import React, { createContext, useState } from 'react';
+
+const UserContext = createContext();
+
+const UserProvider = ({ children }) => {
+  const [user, setUser] = useState({ name: 'John Doe', age: 30 });
+
+  return (
+    <UserContext.Provider value={user}>
+      {children}
+    </UserContext.Provider>
+  );
+};
+
+const UserProfile = () => (
+  <UserContext.Consumer>
+    {(user) => (
+      <div>
+        <h1>{user.name}</h1>
+        <p>Age: {user.age}</p>
+      </div>
+    )}
+  </UserContext.Consumer>
+);
+
+const App = () => (
+  <UserProvider>
+    <UserProfile />
+  </UserProvider>
+);
+
+export default App;
+```
+
+2. **함수형 children에게 직접 전달**
+
+```js
+import React, { createContext, useState } from 'react';
+
+const UserContext = createContext();
+
+const UserProvider = ({ children }) => {
+  const [user, setUser] = useState({ name: 'John Doe', age: 30 });
+
+  return (
+    <UserContext.Provider value={user}>
+      {typeof children === 'function' ? children(user) : children}
+    </UserContext.Provider>
+  );
+};
+
+const UserProfile = () => (
+  <UserProvider>
+    {(user) => (
+      <div>
+        <h1>{user.name}</h1>
+        <p>Age: {user.age}</p>
+      </div>
+    )}
+  </UserProvider>
+);
+
+const App = () => (
+  <div>
+    <UserProfile />
+  </div>
+);
+
+export default App;
+```
