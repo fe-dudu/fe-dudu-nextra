@@ -1,4 +1,4 @@
-# Iterm setting
+# Iterm2 setting
 ## install
 ```
 brew install iterm2
@@ -6,7 +6,7 @@ sh -c "$(curl -fsSL https://raw.github.com/robbyrussell/oh-my-zsh/master/tools/i
 ```
 
 
-## key bindings
+## Key bindings
 | Send Text                                              | Command       |
 | -------------------------------------------------------| ------------- |
 | **pnpm dev**                                           | **⌘ + D**     |
@@ -16,3 +16,37 @@ sh -c "$(curl -fsSL https://raw.github.com/robbyrussell/oh-my-zsh/master/tools/i
 | **git checkout -b JIRA-**                              | **⌘ + B**     |
 | **git branch \| grep -v "main" \| xargs git branch -D**| **⌘ + M**     |
 | **lsof -t -i:3000 \| xargs kill -9**                   | **⌘ + K**     |
+
+## Plugins
+#### zsh-autosuggestions
+```
+git clone https://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions
+```
+#### zsh-syntax-highlighting
+```
+brew install zsh-syntax-highlighting
+```
+#### autojump
+```
+brew install autojump
+```
+#### zshrc setting
+```
+nano ~/.zshrc
+```
+```
+plugins=(
+  git
+  zsh-autosuggestions
+  zsh-syntax-highlighting
+  autojump
+)
+```
+**Control + O** (WriteOut)
+
+**Enter** (Save)
+
+**Control** + X (Exit)
+
+## zsh-syntax-highlighting color setting
+**Settings > Profiles > Colors > ANSI Colors > Black bright(select color)**

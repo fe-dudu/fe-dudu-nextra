@@ -2,7 +2,7 @@ export default {
   'react-declarative-programming': {
     title: 'React declarative programming',
   },
-  iterm: {
-    title: 'Iterm setting',
+  iterm2: {
+    title: 'Iterm2 setting',
   },
 }
