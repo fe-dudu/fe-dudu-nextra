@@ -1,4 +1,7 @@
 export default {
+  'web-vitals': {
+    title: 'Core Web Vitals',
+  },
   jwt: {
     title: 'JWT',
   },
