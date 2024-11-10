@@ -1,0 +1,417 @@
+# Image 톺아보기
+14.1.x `<Image/>` Component가 렌더링되는 과정을 설명합니다.
+
+## handleNextImageRequest
+```js filename="/next.js/packages/next/src/server/next-server.ts"
+protected handleNextImageRequest: RouteHandler = async (req, res, parsedUrl) => {
+  ...
+  else {
+    ...
+    const { ImageOptimizerCache, getHash, sendResponse, ImageError } = require('./image-optimizer') as typeof import('./image-optimizer')
+    const imageOptimizerCache = new ImageOptimizerCache({ distDir: this.distDir, nextConfig: this.nextConfig })
+    const cacheKey = ImageOptimizerCache.getCacheKey(paramsResult)
+
+    try {
+      const { getExtension } = require('./serve-static') as typeof import('./serve-static')
+      const cacheEntry = await this.imageResponseCache.get(
+        cacheKey,
+        async () => {
+          const { buffer, contentType, maxAge } = await this.imageOptimizer(
+            req as NodeNextRequest,
+            res as NodeNextResponse,
+            paramsResult
+          )
+          const etag = getHash([buffer])
+
+          return {
+            value: {
+              kind: 'IMAGE',
+              buffer,
+              etag,
+              extension: getExtension(contentType) as string,
+            },
+            revalidate: maxAge,
+          }
+        },
+        {
+          incrementalCache: imageOptimizerCache,
+        }
+      )
+
+      ...
+
+      sendResponse(
+        (req as NodeNextRequest).originalRequest,
+        (res as NodeNextResponse).originalResponse,
+        paramsResult.href,
+        cacheEntry.value.extension,
+        cacheEntry.value.buffer,
+        paramsResult.isStatic,
+        cacheEntry.isMiss ? 'MISS' : cacheEntry.isStale ? 'STALE' : 'HIT',
+        imagesConfig,
+        cacheEntry.revalidate || 0,
+        Boolean(this.renderOpts.dev)
+      )
+      return true
+    } catch (err) {
+      ...
+    }
+  }
+}
+```
+- Next.js Image request를 담당하는 함수입니다.
+- `this.imageResponseCache.get` 함수에 cacheKey(href, width, quality, mimeType 기반), ResponseGenerator(imageOptimizer response)를 인자로 넘깁니다.
+
+## imageResponseCache
+```js filename="/next.js/packages/next/src/server/response-cache/index.ts"
+export default class ResponseCache implements ResponseCacheBase {
+  ...
+  public async get(
+    key: string | null,
+    responseGenerator: ResponseGenerator,
+    context: {
+      routeKind: RouteKind
+      isOnDemandRevalidate?: boolean
+      isPrefetch?: boolean
+      incrementalCache: IncrementalCache
+      isRoutePPREnabled?: boolean
+      isFallback?: boolean
+    }
+  ): Promise<ResponseCacheEntry | null> {
+    ...
+
+    const {
+      incrementalCache,
+      isOnDemandRevalidate = false,
+      isFallback = false,
+      isRoutePPREnabled = false,
+    } = context
+
+    const response = await this.batcher.batch({ key, isOnDemandRevalidate }, async (cacheKey, resolve) => {
+        ...
+        const kind = routeKindToIncrementalCacheKind(context.routeKind)
+
+        let resolved = false
+        let cachedResponse: IncrementalCacheItem = null
+        try {
+          cachedResponse = !this.minimalMode
+            ? await incrementalCache.get(key, {
+                kind,
+                isRoutePPREnabled: context.isRoutePPREnabled,
+                isFallback,
+              })
+            : null
+
+          if (cachedResponse && !isOnDemandRevalidate) {
+            ...
+
+            resolve({
+              ...cachedResponse,
+              revalidate: cachedResponse.curRevalidate,
+            })
+            resolved = true
+
+            ...
+          }
+
+          const cacheEntry = await responseGenerator({
+            hasResolved: resolved,
+            previousCacheEntry: cachedResponse,
+            isRevalidating: true,
+          })
+
+          ...
+
+          const resolveValue = await fromResponseCacheEntry({
+            ...cacheEntry,
+            isMiss: !cachedResponse,
+          })
+          if (!resolveValue) {
+            if (this.minimalMode) this.previousCacheItem = undefined
+            return null
+          }
+
+          ...
+
+          if (typeof resolveValue.revalidate !== 'undefined') {
+            if (this.minimalMode) {
+              ...
+            } else {
+              await incrementalCache.set(key, resolveValue.value, {
+                revalidate: resolveValue.revalidate,
+                isRoutePPREnabled,
+                isFallback,
+              })
+            }
+          }
+
+          return resolveValue
+        } catch (err) {
+          ...
+        }
+      }
+    )
+
+    return toResponseCacheEntry(response)
+  }
+}
+```
+- 해당 클래스를 확인해보면 `setter` 함수는 없고 `getter`만 있습니다. 
+- `cachedResponse`에서 캐싱된 응답이 있는지 조회합니다.
+  - 캐싱된 응답이 있다면 resolve 처리합니다.
+  - 캐싱된 응답이 없다면 `responseGenerator`를 통해 생성합니다.
+  - 생성된 응답을 `fromResponseCacheEntry`를 통해 `resolveValue`로 변환하고 `revalidate`이 있다면 (undefined가 아니라면) set하여 저장합니다.
+
+## imageOptimizer (next-server.ts)
+```js filename="/next.js/packages/next/src/server/next-server.ts"
+protected async imageOptimizer(
+  req: NodeNextRequest,
+  res: NodeNextResponse,
+  paramsResult: import('./image-optimizer').ImageParamsResult
+): Promise<{ buffer: Buffer; contentType: string; maxAge: number }> {
+  ...
+  else {
+    const { imageOptimizer, fetchExternalImage, fetchInternalImage } = require('./image-optimizer') as typeof import('./image-optimizer')
+    const { isAbsolute, href } = paramsResult
+
+    const imageUpstream = isAbsolute
+      ? await fetchExternalImage(href)
+      : await fetchInternalImage(
+          href,
+          req.originalRequest,
+          res.originalResponse,
+          handleInternalReq
+        )
+
+    return imageOptimizer(
+      imageUpstream,
+      paramsResult,
+      this.nextConfig,
+      this.renderOpts.dev
+    )
+  }
+}
+```
+- `handleNextImageRequest`의 `ResponseGenerator` 내부에서 호출되는 `imageOptimizer` 함수입니다.
+- 내부 이미지(public folder)인지 외부 이미지인지 체크하고 buffer를 생성합니다.
+- `image-optimizer.ts`에 존재하는 `imageOptimizer`를 호출합니다.
+
+## File Content Type
+```js filename="/next.js/packages/next/src/server/image-optimizer.ts"
+const AVIF = 'image/avif'
+const WEBP = 'image/webp'
+const PNG = 'image/png'
+const JPEG = 'image/jpeg'
+const GIF = 'image/gif'
+const SVG = 'image/svg+xml'
+const ICO = 'image/x-icon'
+const CACHE_VERSION = 3
+const ANIMATABLE_TYPES = [WEBP, PNG, GIF]
+const VECTOR_TYPES = [SVG]
+```
+- File Content Type을 정의합니다.
+
+## detectContentType
+```js filename="/next.js/packages/next/src/server/image-optimizer.ts"
+export function detectContentType(buffer: Buffer) {
+  if ([0xff, 0xd8, 0xff].every((b, i) => buffer[i] === b)) {
+    return JPEG
+  }
+  if (
+    [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a].every(
+      (b, i) => buffer[i] === b
+    )
+  ) {
+    return PNG
+  }
+  if ([0x47, 0x49, 0x46, 0x38].every((b, i) => buffer[i] === b)) {
+    return GIF
+  }
+  if (
+    [0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x45, 0x42, 0x50].every(
+      (b, i) => !b || buffer[i] === b
+    )
+  ) {
+    return WEBP
+  }
+  if ([0x3c, 0x3f, 0x78, 0x6d, 0x6c].every((b, i) => buffer[i] === b)) {
+    return SVG
+  }
+  if (
+    [0, 0, 0, 0, 0x66, 0x74, 0x79, 0x70, 0x61, 0x76, 0x69, 0x66].every(
+      (b, i) => !b || buffer[i] === b
+    )
+  ) {
+    return AVIF
+  }
+  if ([0x00, 0x00, 0x01, 0x00].every((b, i) => buffer[i] === b)) {
+    return ICO
+  }
+  return null
+}
+```
+- Image file Buffer의 magic number를 확인하여 Content type을 분류하는 함수를 선언합니다.
+
+## imageOptimizer (image-optimizer.ts)
+```js filename="/next.js/packages/next/src/server/image-optimizer.ts"
+export async function imageOptimizer(
+  imageUpstream: ImageUpstream,
+  paramsResult: Pick<
+    ImageParamsResult,
+    'href' | 'width' | 'quality' | 'mimeType'
+  >,
+  nextConfig: {
+    output: NextConfigComplete['output']
+    images: Pick<
+      NextConfigComplete['images'],
+      'dangerouslyAllowSVG' | 'minimumCacheTTL'
+    >
+  },
+  isDev: boolean | undefined
+): Promise<{ buffer: Buffer; contentType: string; maxAge: number }> {
+  const { href, quality, width, mimeType } = paramsResult
+  const upstreamBuffer = imageUpstream.buffer
+  const maxAge = getMaxAge(imageUpstream.cacheControl)
+  const upstreamType = detectContentType(upstreamBuffer) || imageUpstream.contentType?.toLowerCase().trim()
+
+  if (upstreamType) {
+    if (upstreamType.startsWith('image/svg') && !nextConfig.images.dangerouslyAllowSVG
+    ) {
+      throw new ImageError(400, '"url" parameter is valid but image type is not allowed')
+    }
+    if (ANIMATABLE_TYPES.includes(upstreamType) && isAnimated(upstreamBuffer)) {
+      return { buffer: upstreamBuffer, contentType: upstreamType, maxAge }
+    }
+    if (VECTOR_TYPES.includes(upstreamType)) {
+      return { buffer: upstreamBuffer, contentType: upstreamType, maxAge }
+    }
+    if (!upstreamType.startsWith('image/') || upstreamType.includes(',')) {
+      throw new ImageError(400, "The requested resource isn't a valid image.")
+    }
+  }
+
+  let contentType: string
+
+  if (mimeType) {
+    contentType = mimeType
+  } else if (
+    upstreamType?.startsWith('image/') &&
+    getExtension(upstreamType) &&
+    upstreamType !== WEBP &&
+    upstreamType !== AVIF
+  ) {
+    contentType = upstreamType
+  } else {
+    contentType = JPEG
+  }
+  try {
+    let optimizedBuffer = await optimizeImage({
+      buffer: upstreamBuffer,
+      contentType,
+      quality,
+      width,
+      nextConfigOutput: nextConfig.output,
+    })
+    if (optimizedBuffer) {
+      if (isDev && width <= BLUR_IMG_SIZE && quality === BLUR_QUALITY) {
+        // 개발 환경에서는 Squoosh로 동작
+      }
+
+      // 최적화된 buffer return
+      return {
+        buffer: optimizedBuffer,
+        contentType,
+        maxAge: Math.max(maxAge, nextConfig.images.minimumCacheTTL),
+      }
+    } else {
+      throw new ImageError(500, 'Unable to optimize buffer')
+    }
+  } catch (error) {
+    if (upstreamBuffer && upstreamType) {
+      // 최적화에 실패한 경우 원본 이미지를 반환.
+      return {
+        buffer: upstreamBuffer,
+        contentType: upstreamType,
+        maxAge: nextConfig.images.minimumCacheTTL,
+      }
+    }
+    ...
+  }
+}
+```
+- `const upstreamType = detectContentType(upstreamBuffer) || imageUpstream.contentType?.toLowerCase().trim()` Content type을 감지하거나 제공된 Content type을 사용합니다.
+- SVG를 허용하지 않은 경우 에러 처리합니다.
+- Animation, Vector Image 원본 데이터 그대로 반환합니다.
+- 유효한 Image인지 검증합니다.
+- Content type을 결정합니다.
+- `optimizeImage` 이미지 최적화 함수를 호출합니다.
+
+## optimizeImage
+```js filename="/next.js/packages/next/src/server/image-optimizer.ts"
+export async function optimizeImage({
+  buffer,
+  contentType,
+  quality,
+  width,
+  height,
+  nextConfigOutput,
+}: {
+  buffer: Buffer
+  contentType: string
+  quality: number
+  width: number
+  height?: number
+  nextConfigOutput?: 'standalone' | 'export'
+}): Promise<Buffer> {
+  let optimizedBuffer = buffer
+  if (sharp) {
+    const transformer = sharp(buffer, {
+      sequentialRead: true,
+    })
+
+    transformer.rotate()
+
+    if (height) {
+      transformer.resize(width, height)
+    } else {
+      transformer.resize(width, undefined, {
+        withoutEnlargement: true,
+      })
+    }
+
+    if (contentType === AVIF) {
+      if (transformer.avif) {
+        const avifQuality = quality - 15
+        transformer.avif({
+          quality: Math.max(avifQuality, 0),
+          chromaSubsampling: '4:2:0', // same as webp
+        })
+      } else {
+        transformer.webp({ quality })
+      }
+    } else if (contentType === WEBP) {
+      transformer.webp({ quality })
+    } else if (contentType === PNG) {
+      transformer.png({ quality })
+    } else if (contentType === JPEG) {
+      transformer.jpeg({ quality, progressive: true })
+    }
+
+    optimizedBuffer = await transformer.toBuffer()
+  } else {
+    // Sharp를 설치하지 않았다면 Squoosh로 동작
+  }
+  return optimizedBuffer
+}
+```
+- 전달된 `width, height, quality, contentType`에 맞게 buffer를 가공하여 return합니다.
+
+## 도식화
+![Next.js Image server flow](https://www.fe-dudu.com/image-server.png)
+
+## 참고 자료
+[Next.js 14.1 | next-server.ts](https://github.com/vercel/next.js/blob/f1fc35730c7aeb0ff39513f91ab2b9ed876393fe/packages/next/src/server/next-server.ts#L165)
+
+[Next.js 14.1 | ResponseCache](https://github.com/vercel/next.js/blob/canary/packages/next/src/server/response-cache/index.ts#L21)
+
+[Next.js 14.1 | image-optimizer.ts](https://github.com/vercel/next.js/blob/next-14-1/packages/next/src/server/image-optimizer.ts)

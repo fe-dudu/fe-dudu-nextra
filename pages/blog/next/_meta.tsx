@@ -1,9 +1,15 @@
 export default {
-  isr: {
-    title: 'ISR',
+  image: {
+    title: 'Image',
   },
   'blur-data-URL': {
-    title: 'blurDataURL',
+    title: 'Image blurDataURL',
+  },
+  'image-render': {
+    title: 'Image 톺아보기',
+  },
+  isr: {
+    title: 'ISR',
   },
   'cache-control': {
     title: 'Cache control',

@@ -30,9 +30,6 @@ const config: DocsThemeConfig = {
   footer: {
     content: 'Copyright ⓒ FE-dudu. All rights reserved.',
   },
-  sidebar: {
-    defaultMenuCollapseLevel: 1,
-  },
   darkMode: true,
 }
 

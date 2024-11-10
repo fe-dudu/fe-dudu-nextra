@@ -1,0 +1,30 @@
+# Image
+
+- **Size Optimization**: WebP, AVIF 포맷을 이용하여 각 디바이스 별로 적절한 사이즈 이미지 제공
+- **Visual Stability**: 로딩될때 Layout Shift 방지
+- **Faster Page Loads**: viewport에 Image Component가 감지되면 lazy load한다.
+  - 선택적으로 [Blur Image](https://www.fe-dudu.com/blog/next/blur-data-URL) 제공 가능
+- **Asset Flexibility**: 원격 서버에 저장된 이미지의 경우에도 On-demand 이미지 크기 조정
+
+## Loader
+- **Squoosh** (dev)
+- **Sharp** (Production에서 설치 권장)
+
+
+## AVIF (AV1 Image File Format)
+고압축, 고품질 이미지 포맷이며 작은 파일 크기로 페이지 로딩 속도 개선에 효과적
+```js filename="next.config.js"
+module.exports = {
+  images: {
+    formats: ['image/avif', 'image/webp'],
+  },
+}
+```
+
+- 인코딩하는 데 20% 더 걸리지만 WebP에 비해 20% 더 작게 압축
+- Proxy/CDN을 사용하여 Self hosting하는 경우 Request Headers의 Accept (`image/avif,image/webp`)를 전달하도록 구성
+
+## 참고 자료
+[Next.js Docs | Image format](https://nextjs.org/docs/14/app/api-reference/components/image#formats)
+
+[Next.js Docs | sharp missing in production](https://nextjs.org/docs/messages/sharp-missing-in-production)
