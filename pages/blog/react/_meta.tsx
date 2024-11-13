@@ -1,4 +1,7 @@
 export default {
+  'element-type': {
+    title: 'Element Type'
+  },
   context: {
     title: 'Context API 3가지 사용 패턴',
   },

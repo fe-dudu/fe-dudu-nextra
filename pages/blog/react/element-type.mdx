@@ -1,0 +1,169 @@
+# Element Type
+- `REACT_CONTEXT_TYPE`
+```js
+const REACT_CONTEXT_TYPE: symbol = Symbol.for('react.context');
+
+const Context = React.createContext(false);
+```
+- `REACT_PROVIDER_TYPE`
+```js
+const REACT_PROVIDER_TYPE: symbol = Symbol.for('react.provider');
+
+const Context = React.createContext(false);
+<Context.Provider>...</Context.Provider>
+```
+- `REACT_CONSUMER_TYPE`
+```js
+const REACT_CONSUMER_TYPE: symbol = Symbol.for('react.consumer');
+
+const Context = React.createContext(false);
+<Context.Consumer>...</Context.Consumer>
+```
+- `REACT_ELEMENT_TYPE`
+```js
+const REACT_ELEMENT_TYPE: symbol = Symbol.for('react.transitional.element');
+
+// 기본 html 태그
+<div />
+...
+<span />
+<p />
+<Context.Provider />
+<Context.Consumer />
+<React.Fragment />
+<React.StrictMode />
+<React.Suspense />
+```
+- `REACT_FRAGMENT_TYPE`
+```js
+const REACT_FRAGMENT_TYPE: symbol = Symbol.for('react.fragment');
+
+<React.Fragment />
+<></>
+```
+- `REACT_FORWARD_REF_TYPE`
+```js
+const REACT_FORWARD_REF_TYPE: symbol = Symbol.for('react.forward_ref');
+
+class Component extends React.Component {
+  render() {
+    return React.createElement('div');
+  }
+}
+
+const ForwardRefComponent = React.forwardRef((props, ref) =>
+  React.createElement(Component, {forwardedRef: ref, ...props}),
+);
+```
+- `REACT_LAZY_TYPE`
+```js
+const REACT_LAZY_TYPE: symbol = Symbol.for('react.lazy');
+
+class Component extends React.Component {
+  render() {
+    return React.createElement('div');
+  }
+}
+
+const LazyComponent = React.lazy(() => Component);
+```
+- `REACT_MEMO_TYPE`
+```js
+const REACT_MEMO_TYPE: symbol = Symbol.for('react.memo');
+
+class Component extends React.Component {
+  render() {
+    return React.createElement('div');
+  }
+}
+
+const MemoComponent = React.memo(Component);
+```
+- `REACT_PORTAL_TYPE`
+```js
+const REACT_PORTAL_TYPE: symbol = Symbol.for('react.portal');
+
+const div = document.createElement('div');
+const portal = ReactDOM.createPortal(<div />, div);
+```
+- `REACT_PROFILER_TYPE`
+```js
+const REACT_PROFILER_TYPE: symbol = Symbol.for('react.profiler');
+
+<React.Profiler id="foo" onRender={() => {}}/>
+```
+- `REACT_STRICT_MODE_TYPE`
+```js
+const REACT_STRICT_MODE_TYPE: symbol = Symbol.for('react.strict_mode');
+
+<React.StrictMode />
+```
+- `REACT_SUSPENSE_TYPE`
+```js
+const REACT_SUSPENSE_TYPE: symbol = Symbol.for('react.suspense');
+
+<React.Suspense />
+```
+- `REACT_SUSPENSE_LIST_TYPE`
+```js
+const REACT_SUSPENSE_LIST_TYPE: symbol = Symbol.for('react.suspense_list');
+
+<React.unstable_SuspenseList />
+```
+
+## React-is package `typeof` 함수 살펴보기
+```js filename="react/packages/react-is/src/ReactIs.js#L30"
+export function typeOf(object: any): mixed {
+  if (typeof object === 'object' && object !== null) {
+    const $$typeof = object.$$typeof;
+    switch ($$typeof) {
+      case REACT_ELEMENT_TYPE:
+        const type = object.type;
+
+        switch (type) {
+          case REACT_FRAGMENT_TYPE:
+          case REACT_PROFILER_TYPE:
+          case REACT_STRICT_MODE_TYPE:
+          case REACT_SUSPENSE_TYPE:
+          case REACT_SUSPENSE_LIST_TYPE:
+            return type;
+          default:
+            const $$typeofType = type && type.$$typeof;
+
+            switch ($$typeofType) {
+              case REACT_CONTEXT_TYPE:
+              case REACT_FORWARD_REF_TYPE:
+              case REACT_LAZY_TYPE:
+              case REACT_MEMO_TYPE:
+                return $$typeofType;
+              case REACT_CONSUMER_TYPE:
+                if (enableRenderableContext) {
+                  return $$typeofType;
+                }
+              // Fall through
+              case REACT_PROVIDER_TYPE:
+                if (!enableRenderableContext) {
+                  return $$typeofType;
+                }
+              // Fall through
+              default:
+                return $$typeof;
+            }
+        }
+      case REACT_PORTAL_TYPE:
+        return $$typeof;
+    }
+  }
+
+  return undefined;
+}
+```
+1. 먼저 object에 `$$typeof`를 체크하여 Element 요소인지, Portal을 사용하여 특정 태그를 DOM에 삽입하는지 체크한다.
+2. `ElementType`에 포함되는 `REACT_FRAGMENT_TYPE`, `REACT_PROFILER_TYPE`, `REACT_STRICT_MODE_TYPE`, `REACT_SUSPENSE_TYPE`, `REACT_SUSPENSE_LIST_TYPE`은 type 그대로 반환한다.
+   - `type`은 symbol 값을 갖는다.
+3. `type.$$typeof`(`type` 객체 내부에 `$$typeof` 값)을 확인하고 반환한다.
+   - `type.$$typeof` 또한 symbol 값을 갖는다.
+
+
+## 참고 자료
+[React | react-is](https://github.com/facebook/react/blob/main/packages/react-is/src/__tests__/ReactIs-test.js)
