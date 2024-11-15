@@ -7,9 +7,9 @@ const config: DocsThemeConfig = {
     return <Image src="/logo.png" width={40} height={40} alt="dudu logo" />
   },
   project: {
-    link: 'https://github.com/fe-dudu/fe-dudu-nextra',
+    link: 'https://github.com/fe-dudu',
   },
-  docsRepositoryBase: 'https://github.com/fe-dudu/fe-dudu-nextra/blob/main',
+  docsRepositoryBase: 'https://github.com/fe-dudu',
   head: function () {
     const config = useConfig()
     const { asPath } = useRouter()
@@ -27,10 +27,18 @@ const config: DocsThemeConfig = {
       </>
     )
   },
+  search: {
+    placeholder: '검색어를 입력하세요.',
+  },
   footer: {
     content: 'Copyright ⓒ FE-dudu. All rights reserved.',
   },
   darkMode: true,
+  nextThemes: {
+    forcedTheme: 'dark',
+  },
+  feedback: { content: undefined },
+  editLink: { content: undefined },
 }
 
 export default config
