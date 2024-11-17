@@ -1,15 +1,15 @@
 export default {
-  next: {
-    title: 'Next.js',
-  },
   react: {
     title: 'React',
   },
-  typescript: {
-    title: 'TypeScript',
+  next: {
+    title: 'Next.js',
   },
   javascript: {
     title: 'JavaScript',
+  },
+  typescript: {
+    title: 'TypeScript',
   },
   node: {
     title: 'Node',

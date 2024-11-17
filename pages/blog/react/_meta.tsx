@@ -1,6 +1,9 @@
 export default {
-  'element-type': {
-    title: 'Element Type'
+  'reconciler-worktag': {
+    title: 'Reconciler - Work Tag',
+  },
+  'react-is-element-type': {
+    title: 'ReactIs - Element Type',
   },
   context: {
     title: 'Context API 3가지 사용 패턴',
