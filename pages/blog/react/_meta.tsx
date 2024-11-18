@@ -1,4 +1,7 @@
 export default {
+  'react-type': {
+    title: 'Shared - React Type'
+  },
   'reconciler-worktag': {
     title: 'Reconciler - Work Tag',
   },
