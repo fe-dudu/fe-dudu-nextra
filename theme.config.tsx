@@ -34,9 +34,6 @@ const config: DocsThemeConfig = {
     content: 'Copyright ⓒ FE-dudu. All rights reserved.',
   },
   darkMode: true,
-  nextThemes: {
-    forcedTheme: 'dark',
-  },
   feedback: { content: undefined },
   editLink: { content: undefined },
 }
