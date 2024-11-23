@@ -14,7 +14,7 @@ const config: DocsThemeConfig = {
     const config = useConfig()
     const { asPath } = useRouter()
     const url = `https://www.fe-dudu.com${asPath}`
-    const title = config.title !== 'Index' ? `${config.title} - FE dudu` : 'FE dudu'
+    const title = config.title !== 'Index' ? `${config.title} | FE dudu` : 'FE dudu'
     return (
       <>
         <link rel="icon" href="/favicon.ico" type="image/ico" />
@@ -27,15 +27,19 @@ const config: DocsThemeConfig = {
       </>
     )
   },
+  toc: {title: '목차'},
   search: {
     placeholder: '검색어를 입력하세요.',
   },
   footer: {
     content: 'Copyright ⓒ FE-dudu. All rights reserved.',
   },
-  darkMode: true,
-  feedback: { content: undefined },
-  editLink: { content: undefined },
+  darkMode: false,
+  nextThemes: {
+    forcedTheme: 'dark',
+  },
+  feedback: { content: <></> },
+  editLink: { content: <></> },
 }
 
 export default config
