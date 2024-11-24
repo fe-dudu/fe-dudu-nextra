@@ -1,6 +1,6 @@
 export default {
-  'react-declarative-programming': {
-    title: 'React declarative programming',
+  'react-declarative': {
+    title: 'React declarative',
   },
   mac: {
     title: 'Mac setting',
