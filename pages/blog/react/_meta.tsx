@@ -8,6 +8,9 @@ export default {
   'react-is-element-type': {
     title: 'ReactIs - Element Type',
   },
+  suspense: {
+    title: 'Suspense'
+  },
   context: {
     title: 'Context API 3가지 사용 패턴',
   },
