@@ -1,15 +1,18 @@
 export default {
-  'react-type': {
-    title: 'Shared - React Type'
+  'reconciler-fiber': {
+    title: 'React-reconciler | Fiber',
   },
   'reconciler-worktag': {
-    title: 'Reconciler - Work Tag',
+    title: 'React-reconciler | WorkTag',
+  },
+  'react-type': {
+    title: 'Shared | React Type',
   },
   'react-is-element-type': {
-    title: 'ReactIs - Element Type',
+    title: 'ReactIs | Element Type',
   },
   suspense: {
-    title: 'Suspense'
+    title: 'Suspense',
   },
   context: {
     title: 'Context API 3가지 사용 패턴',

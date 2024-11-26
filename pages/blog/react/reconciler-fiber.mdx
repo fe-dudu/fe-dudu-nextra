@@ -1,0 +1,125 @@
+# React-reconciler | Fiber (19.0.0)
+
+```js filename=""react/packages/react-reconciler/src/ReactInternalTypes.js" /Fiber/"
+export type Fiber = {
+  tag: WorkTag,
+  key: null | string,
+  elementType: any,
+  type: any,
+  stateNode: any,
+  return: Fiber | null,
+  child: Fiber | null,
+  sibling: Fiber | null,
+  index: number,
+  ref:
+    | null
+    | (((handle: mixed) => void) & {_stringRef: ?string, ...})
+    | RefObject,
+  refCleanup: null | (() => void),
+  pendingProps: any,
+  memoizedProps: any,
+  updateQueue: mixed,
+  memoizedState: any,
+  dependencies: Dependencies | null,
+  mode: TypeOfMode,
+  flags: Flags,
+  subtreeFlags: Flags,
+  deletions: Array<Fiber> | null,
+  lanes: Lanes,
+  childLanes: Lanes,
+  alternate: Fiber | null,
+  actualDuration?: number,
+  actualStartTime?: number,
+  selfBaseDuration?: number,
+  treeBaseDuration?: number,
+};
+```
+
+## `tag`
+렌더링 과정에서 파이버를 어떻게 처리할지 결정합니다.
+
+[WorkTag](/blog/react/reconciler-worktag)
+
+## `key`
+`Root`에서 `WorkinProgress`, `current` 간 동일 요소를 판별하는데 사용됩니다.
+
+## `elementType`
+재조정(reconciliation) 중에 정체성을 유지하기 위해 사용되는 element.type의 값입니다.
+
+## `type`
+`Fiber`와 연결된 해석된 함수 또는 클래스입니다.
+
+## `stateNode`
+`Fiber`와 연결된 로컬 상태입니다.
+
+## `return`
+부모 `Fiber`를 참조
+
+## `child`
+첫 번째 자식 `Fiber`를 참조
+
+## `sibling`
+다음 형제 `Fiber`를 참조
+
+## `index`
+형제들 중 현재 `Fiber` 위치
+
+## `ref`
+DOM 요소에 대한 참조 정보 저장
+
+## `pendingProps`
+컴포넌트에 전달될 예정인 props
+
+## `memoizedProps`
+이전 렌더링에 사용된 props
+
+## `updateQueue`
+상태 업데이트와 콜백을 저장하는 큐
+
+## `memoizedState`
+현재 렌더링에 사용된 상태
+
+## `dependencies`
+컨텍스트, 이벤트 관련 종속성
+
+## `mode`
+렌더링 모드 제어
+```js
+export const NoMode = /*                         */ 0b0000000;
+export const ConcurrentMode = /*                 */ 0b0000001;
+export const ProfileMode = /*                    */ 0b0000010;
+export const DebugTracingMode = /*               */ 0b0000100;
+export const StrictLegacyMode = /*               */ 0b0001000;
+export const StrictEffectsMode = /*              */ 0b0010000;
+export const NoStrictPassiveEffectsMode = /*     */ 0b1000000;
+```
+
+## `flags`
+어떤 작업을 수행해야 하는지 여부와 그 작업의 특성을 정의합니다.
+
+## `subtreeFlags`
+자식 `Fiber`가 어떤 작업을 수행해야 하는지 여부와 그 작업의 특성을 정의합니다.
+
+## `deletions`
+제거해야할 자식 `Fiber` 배열입니다.
+
+## `lanes`
+작업 우선순위를 정의합니다.
+
+## `childLanes`
+자식 `Fiber`의 작업 우선순위를 정의합니다.
+
+## `alternate`
+`current` 기준 `WorkinProgress`에서 동일한 `Fiber` 참조입니다.
+
+## `actualDuration`
+`Fiber`의 모든 자식들을 렌더링하는데 걸린 시간입니다. `enableProfilerTimer` 플래그가 활성화되어 있을 때만 설정됩니다.
+
+## `actualStartTime`
+렌더링을 시작한 시간입니다. `enableProfilerTimer` 플래그가 활성화되어 있을 때만 설정됩니다.
+
+## `selfBaseDuration`
+`Fiber`의 가장 최근 렌더링 시간의 지속 시간입니다. 메모이제이션을 위한 최적화가 발생할 때는 이 값이 업데이트되지 않으며 `enableProfilerTimer` 플래그가 활성화되어 있을 때만 설정됩니다.
+
+## `treeBaseDuration`
+`Fiber`의 모든 자식들의 기본 렌더링 시간의 합입니다. `enableProfilerTimer` 플래그가 활성화되어 있을 때만 설정됩니다.
