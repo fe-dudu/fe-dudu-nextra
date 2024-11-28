@@ -40,7 +40,7 @@ columns 1
   end
 
   WorkInProgress -- "Child" --> A
-  A -- "Return" --> WorkInProgress
+  A -- "Return | Child" --> WorkInProgress
   A -- "Sibling" -->B
   B -- "Sibling" -->C
 
@@ -54,7 +54,7 @@ columns 1
     F["Child 2-3"]
   end
   B -- "Child" --> D
-  D -- "Return" --> B
+  D -- "Return | Child" --> B
   D -- "Sibling" --> E
   E -- "Sibling" --> F
 ```
