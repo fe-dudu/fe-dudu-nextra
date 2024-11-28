@@ -1,4 +1,7 @@
 export default {
+  'reconciler-fiber-tree': {
+    title: 'React-reconciler | Fiber tree',
+  },
   'reconciler-fiber': {
     title: 'React-reconciler | Fiber',
   },

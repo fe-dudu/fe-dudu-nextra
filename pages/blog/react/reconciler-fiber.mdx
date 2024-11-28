@@ -1,6 +1,6 @@
 # React-reconciler | Fiber (19.0.0)
 
-```js filename=""react/packages/react-reconciler/src/ReactInternalTypes.js" /Fiber/"
+```js filename="react/packages/react-reconciler/src/ReactInternalTypes.js" /Fiber/"
 export type Fiber = {
   tag: WorkTag,
   key: null | string,
@@ -53,37 +53,37 @@ export type Fiber = {
 `Fiber`와 연결된 로컬 상태입니다.
 
 ## `return`
-부모 `Fiber`를 참조
+부모 `Fiber`를 참조합니다.
 
 ## `child`
-첫 번째 자식 `Fiber`를 참조
+첫 번째 자식 `Fiber`를 참조합니다.
 
 ## `sibling`
-다음 형제 `Fiber`를 참조
+다음 형제 `Fiber`를 참조합니다.
 
 ## `index`
-형제들 중 현재 `Fiber` 위치
+형제들 중 현재 `Fiber` 위치입니다.
 
 ## `ref`
-DOM 요소에 대한 참조 정보 저장
+DOM 요소에 대한 참조 정보를 저장합니다.
 
 ## `pendingProps`
-컴포넌트에 전달될 예정인 props
+컴포넌트에 전달될 예정인 `props`입니다.
 
 ## `memoizedProps`
-이전 렌더링에 사용된 props
+이전 렌더링에 사용된 `props`입니다.
 
 ## `updateQueue`
-상태 업데이트와 콜백을 저장하는 큐
+상태 업데이트와 콜백을 저장하는 큐입니다.
 
 ## `memoizedState`
-현재 렌더링에 사용된 상태
+현재 렌더링에 사용된 상태입니다.
 
 ## `dependencies`
-컨텍스트, 이벤트 관련 종속성
+컨텍스트, 이벤트 관련 종속성입니다.
 
 ## `mode`
-렌더링 모드 제어
+렌더링 모드 제어 관련 정보입니다.
 ```js
 export const NoMode = /*                         */ 0b0000000;
 export const ConcurrentMode = /*                 */ 0b0000001;
