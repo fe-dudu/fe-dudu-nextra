@@ -1,4 +1,7 @@
 export default {
+  'happy-moment': {
+    title: '💡 행복한 순간',
+  },
   'peer-pressure': {
     title: '💡 Peer pressure',
   },
