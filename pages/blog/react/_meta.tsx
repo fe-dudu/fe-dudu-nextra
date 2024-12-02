@@ -1,12 +1,6 @@
 export default {
-  'reconciler-fiber-tree': {
-    title: 'React-reconciler | Fiber tree',
-  },
-  'reconciler-fiber': {
-    title: 'React-reconciler | Fiber',
-  },
-  'reconciler-worktag': {
-    title: 'React-reconciler | WorkTag',
+  reconciler: {
+    title: 'Reconciler',
   },
   'react-type': {
     title: 'Shared | React Type',
@@ -17,20 +11,14 @@ export default {
   suspense: {
     title: 'Suspense',
   },
-  context: {
-    title: 'Context API 3가지 사용 패턴',
-  },
-  'use-effect': {
-    title: 'useEffect 3가지 사용 패턴',
-  },
-  'data-fetching': {
-    title: 'useEffect data fetching',
-  },
-  'you-might-not-need-an-effect': {
-    title: 'You Might Not Need an Effect',
+  useEffect: {
+    title: 'useEffect',
   },
   'you-might-not-need-redux': {
     title: 'You Might Not Need Redux',
+  },
+  context: {
+    title: 'Context API 3가지 사용 패턴',
   },
   'use-sync-external-store': {
     title: 'useSyncExternalStore',

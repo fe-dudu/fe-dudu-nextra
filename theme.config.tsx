@@ -31,6 +31,9 @@ const config: DocsThemeConfig = {
   search: {
     placeholder: '검색어를 입력하세요.',
   },
+  sidebar: {
+    defaultMenuCollapseLevel: 1,
+  },
   footer: {
     content: 'Copyright ⓒ FE-dudu. All rights reserved.',
   },
