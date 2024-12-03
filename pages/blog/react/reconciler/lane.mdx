@@ -1,5 +1,5 @@
 # React-reconciler | Lane (19.0.0)
-**우선순위**가 더 높은 업데이트를 먼저 처리하고, 불필요한 렌더링을 하는 것을 방지합니다. 직역해보면 어떤 우선순위 도로에 있는지 확인하는 작업입니다.
+작업들이 어떤 **우선순위** 도로(Lane)에 있는지 확인하고 이미 작업된 목록은 제거하여 불필요한 렌더링을 방지합니다.
 
 ## Lane
 ```js filename="react/packages/react-reconciler/src/ReactFiberLane.js"
@@ -69,19 +69,19 @@ export const HydrationLanes =
 - 작업이 없는 상태를 나타냅니다.
 
 ### `SyncLane`
-- (NoLane을 제외하고) 가장 높은 우선순위를 가지며 사용자 상호작용(클릭, 입력 등)을 즉각 처리해야 할 때 사용됩니다.
+- 가장 높은 우선순위를 가지며 사용자 상호작용(클릭, 입력 등)을 즉각 처리해야 할 때 사용됩니다. 해당 Lane에 할당된 작업은 이름과 같이 동기적으로 렌더링됩니다. 이유는 높은 UI 반응성을 위해서입니다.
 
 ### `SyncHydrationLane`
 - 서버에서 전송된 HTML과 React의 상태를 동기화할 때 사용됩니다.
 
 ### `InputContinuousLane`
-- (NoLane을 제외하고) 두 번째 우선순위를 가지며 지속적인 입력 이벤트(예: 키 입력, 스크롤)와 관련된 작업입니다.
+- 두 번째 우선순위를 가지며 지속적인 입력 이벤트(예: 키 입력, 스크롤)와 관련된 작업입니다.
 
 ### `InputContinuousHydrationLane`
 - 입력 이벤트(예: 키 입력, 스크롤)와 관련된 서버-클라이언트 동기화를 처리합니다.
 
 ### `DefaultLane`
-- (NoLane을 제외하고) 세 번째 우선순위를 가지며 리액트 외부(`fetch`, `setTimeout` 등)에서 발생한 이벤트를 처리합니다.
+- 세 번째 우선순위를 가지며 리액트 외부(`fetch`, `setTimeout` 등)에서 발생한 이벤트를 처리합니다.
 
 ### `TransitionLane`
 - 15개의 TransitionLane(1~15)으로 세분화되어 있으며 `useTransition`, `startTransition`을 사용하여 지연된 작업입니다.
@@ -90,7 +90,7 @@ export const HydrationLanes =
 - 4개의 RetryLane(1~4)으로 세분화되어 있으며 실패한 작업을 재시도할 때 사용됩니다.
 
 ### `IdleLane`
-- (NoLane을 제외하고) 네 번째 우선순위를 가지며 매우 낮은 우선순위의 작업으로 CPU가 유휴 상태일 때만 처리됩니다.
+- 네 번째 우선순위를 가지며 매우 낮은 우선순위의 작업으로 CPU가 유휴 상태일 때만 처리됩니다.
 
 ### `OffscreenLane`
 - 화면 밖에서 발생하는 작업(숨겨진 콘텐츠의 준비 등)입니다.
@@ -252,6 +252,65 @@ function performUnitOfWork(unitOfWork: Fiber): void {
 ```
 `workLoopConcurrent` 메소드에서 `workInProgress` 트리를 순회할 때 항상 양보해야 하는지 체크합니다.
 
+## 어떻게 불필요한 렌더링을 방지하나요?
+```js filename="react/packages/react-reconciler/src/ReactFiberBeginWork.js" /bailoutOnAlreadyFinishedWork/"
+function updateFunctionComponent(
+  current: null | Fiber,
+  workInProgress: Fiber,
+  Component: any,
+  nextProps: any,
+  renderLanes: Lanes,
+) {
+  ...
+  if (current !== null && !didReceiveUpdate) {
+    bailoutHooks(current, workInProgress, renderLanes);
+    return bailoutOnAlreadyFinishedWork(current, workInProgress, renderLanes);
+  }
+  ...
+}
+```
+다음과 같이 컴포넌트를 업데이트할 때 `didReceiveUpdate`을 기반으로 렌더링을 건너뜁니다.
+
+```js filename="react/packages/react-reconciler/src/ReactFiberBeginWork.js" /markSkippedUpdateLanes/"
+function bailoutOnAlreadyFinishedWork(
+  current: Fiber | null,
+  workInProgress: Fiber,
+  renderLanes: Lanes,
+): Fiber | null {
+  ...
+  markSkippedUpdateLanes(workInProgress.lanes);
+
+  if (!includesSomeLane(renderLanes, workInProgress.childLanes)) {
+    if (enableLazyContextPropagation && current !== null) {
+      lazilyPropagateParentContextChanges(current, workInProgress, renderLanes);
+      if (!includesSomeLane(renderLanes, workInProgress.childLanes)) {
+        return null;
+      }
+    } else {
+      return null;
+    }
+  }
+
+  cloneChildFibers(current, workInProgress);
+  return workInProgress.child;
+}
+```
+- `markSkippedUpdateLanes` 메소드를 통해 건너뛴 `Lane`을 기록합니다.
+- `childLane`가 `renderLanes`에 포함되지 않는지 확인합니다.
+- context 변경 후에도 `childLane`s가 renderLanes`에 포함되지 않으면 `null`을 반환합니다.
+- context 변경이 필요없거나 현재 `Fiber`가 `null`이면 null을 리턴합니다.
+- 현재 `Fiber`에 작업은 없지만 자식 `Fiber`에는 작업이 남아 있는 경우는 작업을 이어갑니다.
+
+```js filename="react/packages/react-reconciler/src/ReactFiberWorkLoop.js" /markSkippedUpdateLanes/"
+let workInProgressRootSkippedLanes: Lanes = NoLanes;
+...
+export function markSkippedUpdateLanes(lane: Lane | Lanes): void {
+  workInProgressRootSkippedLanes = mergeLanes(
+    lane,
+    workInProgressRootSkippedLanes,
+  );
+}
+```
 
 ## 참고 자료
 [goidle | React 18 톺아보기 - 02.Lane 모델](https://goidle.github.io/react/in-depth-react18-lane)
