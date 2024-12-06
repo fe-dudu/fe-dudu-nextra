@@ -1,0 +1,259 @@
+# React-reconciler | FiberRoot (19.0.0) 작성 중
+
+```js filename="react/packages/react-reconciler/src/ReactInternalTypes.js"
+type BaseFiberRootProperties = {
+  tag: RootTag,
+  containerInfo: Container,
+  pendingChildren: any,
+  current: Fiber,
+  pingCache: WeakMap<Wakeable, Set<mixed>> | Map<Wakeable, Set<mixed>> | null,
+  finishedWork: Fiber | null,
+  timeoutHandle: TimeoutHandle | NoTimeout,
+  cancelPendingCommit: null | (() => void),
+  context: Object | null,
+  pendingContext: Object | null,
+  next: FiberRoot | null,
+  callbackNode: any,
+  callbackPriority: Lane,
+  expirationTimes: LaneMap<number>,
+  hiddenUpdates: LaneMap<Array<ConcurrentUpdate> | null>,
+  pendingLanes: Lanes,
+  suspendedLanes: Lanes,
+  pingedLanes: Lanes,
+  warmLanes: Lanes,
+  expiredLanes: Lanes,
+  errorRecoveryDisabledLanes: Lanes,
+  shellSuspendCounter: number,
+  finishedLanes: Lanes,
+  entangledLanes: Lanes,
+  entanglements: LaneMap<Lanes>,
+  pooledCache: Cache | null,
+  pooledCacheLanes: Lanes,
+  identifierPrefix: string,
+  onUncaughtError: (
+    error: mixed,
+    errorInfo: {+componentStack?: ?string},
+  ) => void,
+  onCaughtError: (
+    error: mixed,
+    errorInfo: {
+      +componentStack?: ?string,
+      +errorBoundary?: ?React$Component<any, any>,
+    },
+  ) => void,
+  onRecoverableError: (
+    error: mixed,
+    errorInfo: {+componentStack?: ?string},
+  ) => void,
+
+  formState: ReactFormState<any, any> | null,
+};
+
+type UpdaterTrackingOnlyFiberRootProperties = {
+  memoizedUpdaters: Set<Fiber>,
+  pendingUpdatersLaneMap: LaneMap<Set<Fiber>>,
+};
+
+export type SuspenseHydrationCallbacks = {
+  onHydrated?: (suspenseInstance: SuspenseInstance) => void,
+  onDeleted?: (suspenseInstance: SuspenseInstance) => void,
+  ...
+};
+
+type SuspenseCallbackOnlyFiberRootProperties = {
+  hydrationCallbacks: null | SuspenseHydrationCallbacks,
+};
+
+export type TransitionTracingCallbacks = {
+  onTransitionStart?: (transitionName: string, startTime: number) => void,
+  onTransitionProgress?: (
+    transitionName: string,
+    startTime: number,
+    currentTime: number,
+    pending: Array<{name: null | string}>,
+  ) => void,
+  onTransitionIncomplete?: (
+    transitionName: string,
+    startTime: number,
+    deletions: Array<{
+      type: string,
+      name?: string | null,
+      endTime: number,
+    }>,
+  ) => void,
+  onTransitionComplete?: (
+    transitionName: string,
+    startTime: number,
+    endTime: number,
+  ) => void,
+  onMarkerProgress?: (
+    transitionName: string,
+    marker: string,
+    startTime: number,
+    currentTime: number,
+    pending: Array<{name: null | string}>,
+  ) => void,
+  onMarkerIncomplete?: (
+    transitionName: string,
+    marker: string,
+    startTime: number,
+    deletions: Array<{
+      type: string,
+      name?: string | null,
+      endTime: number,
+    }>,
+  ) => void,
+  onMarkerComplete?: (
+    transitionName: string,
+    marker: string,
+    startTime: number,
+    endTime: number,
+  ) => void,
+};
+
+type TransitionTracingOnlyFiberRootProperties = {
+  transitionCallbacks: null | TransitionTracingCallbacks,
+  transitionLanes: Array<Set<Transition> | null>,
+  incompleteTransitions: Map<Transition, TracingMarkerInstance>,
+};
+
+type ProfilerCommitHooksOnlyFiberRootProperties = {
+  effectDuration: number,
+  passiveEffectDuration: number,
+};
+
+export type FiberRoot = {
+  ...BaseFiberRootProperties,
+  ...SuspenseCallbackOnlyFiberRootProperties,
+  ...UpdaterTrackingOnlyFiberRootProperties,
+  ...TransitionTracingOnlyFiberRootProperties,
+  ...ProfilerCommitHooksOnlyFiberRootProperties,
+};
+```
+
+## BaseFiberRootProperties
+**tag**
+- 작성 중
+
+**containerInfo**
+- 작성 중
+
+**pendingChildren**
+- 작성 중
+
+**current**
+- 작성 중
+
+**pingCache**
+- 작성 중
+
+**finishedWork**
+- 작성 중
+
+**timeoutHandle**
+- 작성 중
+
+**cancelPendingCommit**
+- 작성 중
+
+**context**
+- 작성 중
+
+**pendingContext**
+- 작성 중
+
+**next**
+- 작성 중
+
+**callbackNode**
+- 작성 중
+
+**callbackPriority**
+- 작성 중
+
+**expirationTimes**
+- 작성 중
+
+**hiddenUpdates**
+- 작성 중
+
+**pendingLanes**
+- 작성 중
+
+**suspendedLanes**
+- 작성 중
+
+**pingedLanes**
+- 작성 중
+
+**warmLanes**
+- 작성 중
+
+**expiredLanes**
+- 작성 중
+
+**errorRecoveryDisabledLanes**
+- 작성 중
+
+**shellSuspendCounter**
+- 작성 중
+
+**finishedLanes**
+- 작성 중
+
+**entangledLanes**
+- 작성 중
+
+**entanglements**
+- 작성 중
+
+**pooledCache**
+- 작성 중
+
+**pooledCacheLanes**
+- 작성 중
+
+**identifierPrefix**
+- 작성 중
+
+**onUncaughtError**
+- 작성 중
+
+**onCaughtError**
+- 작성 중
+
+**onRecoverableError**
+- 작성 중
+
+**formState**
+- 작성 중
+
+
+## SuspenseCallbackOnlyFiberRootProperties
+**hydrationCallbacks**
+- `onHydrated`
+- `onDeleted`
+
+## UpdaterTrackingOnlyFiberRootProperties
+**memoizedUpdaters**
+- 작성 중
+
+**pendingUpdatersLaneMap**
+- 작성 중
+
+## TransitionTracingOnlyFiberRootProperties
+**transitionCallbacks**
+- 작성 중
+
+**transitionLanes**
+- 작성 중
+
+**incompleteTransitions**
+- 작성 중
+
+## ProfilerCommitHooksOnlyFiberRootProperties
+**effectDuration**
+- 작성 중
+
+**passiveEffectDuration**
+- 작성 중

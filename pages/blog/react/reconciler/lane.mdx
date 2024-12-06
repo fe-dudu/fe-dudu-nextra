@@ -106,7 +106,7 @@ export const ContinuousEventPriority: EventPriority = InputContinuousLane;
 export const DefaultEventPriority: EventPriority = DefaultLane;
 export const IdleEventPriority: EventPriority = IdleLane;
 ```
-사용자 상호작용 -> 마우스 드래그와 같은 지속적인 입력 -> 비동기 요청 및 상태 업데이트 -> 유휴 상태 순으로 우선순위를 갖습니다.
+사용자 상호작용 -> 마우스 드래그와 같은 지속적인 이벤트 -> 비동기 요청 및 상태 업데이트 -> 유휴 상태 순으로 우선순위를 갖습니다.
 
 ## `SyncLane`, `InputContinuousLane` event 분류
 ```js filename="react/packages/react-dom-bindings/src/events/ReactDOMEventlistener.js"
@@ -297,7 +297,7 @@ function bailoutOnAlreadyFinishedWork(
 ```
 - `markSkippedUpdateLanes` 메소드를 통해 건너뛴 `Lane`을 기록합니다.
 - `childLane`가 `renderLanes`에 포함되지 않는지 확인합니다.
-- context 변경 후에도 `childLane`s가 renderLanes`에 포함되지 않으면 `null`을 반환합니다.
+- context 변경 후에도 `childLane`이 `renderLanes`에 포함되지 않으면 `null`을 반환합니다.
 - context 변경이 필요없거나 현재 `Fiber`가 `null`이면 null을 리턴합니다.
 - 현재 `Fiber`에 작업은 없지만 자식 `Fiber`에는 작업이 남아 있는 경우는 작업을 이어갑니다.
 

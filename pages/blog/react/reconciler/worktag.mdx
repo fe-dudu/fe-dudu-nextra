@@ -43,7 +43,7 @@ export const Throw = 29;
 
 # 주요 Work Tag 이해하기
 
-## FunctionComponent
+## `FunctionComponent`
 함수형 컴포넌트를 의미합니다.
 ```js
 function Example() {
@@ -52,7 +52,7 @@ function Example() {
 ```
 
 
-## ClassComponent
+## `ClassComponent`
 클래스형 컴포넌트를 의미합니다.
 ```js
 class Example extends React.Component {
@@ -63,27 +63,27 @@ class Example extends React.Component {
 ```
 
 
-## HostRoot
+## `HostRoot`
 `ReactDOM.render(){:jsx}`의 두번째 인자로 들어오는 root입니다.
 ```js
 ReactDOM.render(<App />, document.getElementById('root'));
 ```
 
-## HostPortal
+## `HostPortal`
 `ReactDOM.createPortal(){:jsx}`의 두번째 인자로 들어오는 container입니다.
 ```js
 ReactDOM.createPortal(<div>Hello</div>, document.body);
 ```
 
 
-## HostComponent
+## `HostComponent`
 div, span, p 등 DOM 요소를 의미합니다.
 ```js
 <div>Hello</div>
 ```
 
 
-## HostText
+## `HostText`
 `string | number{:jsx}`타입이며 `"Hello"`, `1`이 `HostText`입니다.
 ```js
 <div>Hello</div>
@@ -91,7 +91,7 @@ div, span, p 등 DOM 요소를 의미합니다.
 ```
 
 
-## Fragment
+## `Fragment`
 자식을 그룹화할 수 있습니다.
 ```js
 <>
@@ -106,7 +106,7 @@ div, span, p 등 DOM 요소를 의미합니다.
 ```
 
 
-## Mode
+## `Mode`
 ```js
 <React.StrictMode>
   <div>Hello</div>
@@ -114,7 +114,7 @@ div, span, p 등 DOM 요소를 의미합니다.
 ```
 
 
-## ContextConsumer
+## `ContextConsumer`
 Context value를 사용하는 방법을 제공합니다.
 ```js
 <MyContext.Consumer>
@@ -123,7 +123,7 @@ Context value를 사용하는 방법을 제공합니다.
 ```
 
 
-## ContextProvider
+## `ContextProvider`
 Context value를 사용하는 방법을 제공합니다.
 ```js
 <MyContext.Provider value={value}>
@@ -132,7 +132,7 @@ Context value를 사용하는 방법을 제공합니다.
 ```
 
 
-## ForwardRef
+## `ForwardRef`
 ref를 전달하는 컴포넌트를 만드는 데 사용됩니다. 주로 하위 컴포넌트의 DOM 노드나 인스턴스에 접근할 때 유용합니다.
 ```js
 const FancyButton = React.forwardRef((props, ref) => (
@@ -143,7 +143,7 @@ const FancyButton = React.forwardRef((props, ref) => (
 ```
 
 
-## Profiler
+## `Profiler`
 성능 측정을 위해 특정 컴포넌트의 렌더링 시간 등을 기록합니다.
 ```js
 <Profiler id="App" onRender={callback}>
@@ -152,7 +152,7 @@ const FancyButton = React.forwardRef((props, ref) => (
 ```
 
 
-## SuspenseComponent
+## `SuspenseComponent`
 비동기 작업(data fetching, module import 등)이 완료될 때까지 fallback UI를 표시합니다.
 ```js
 <Suspense fallback={<Loading />}>
@@ -161,7 +161,7 @@ const FancyButton = React.forwardRef((props, ref) => (
 ```
 
 
-## MemoComponent
+## `MemoComponent`
 `memo` 기능을 사용하면서 직접 비교 로직을 구현한 경우입니다.
 ```js
 const MemoizedComponent = React.memo(function MyComponent(props) {
@@ -172,7 +172,7 @@ const MemoizedComponent = React.memo(function MyComponent(props) {
 ```
 
 
-## SimpleMemoComponent
+## `SimpleMemoComponent`
 `memo` 기능을 사용하면서 직접 비교 로직을 구현하지 않은 경우입니다.
 ```js
 const MemoizedComponent = React.memo(function MyComponent(props) {
@@ -213,14 +213,14 @@ function updateMemoComponent(
 ```
 
 
-## LazyComponent
+## `LazyComponent`
 동적 임포트를 위한 `lazy` 기능이 적용된 컴포넌트입니다.
 ```js
 const LazyComponent = React.lazy(() => import('./LazyComponent'));
 ```
 
 
-## DehydratedFragment
+## `DehydratedFragment`
 서버 사이드 렌더링(SSR)에서 클라이언트로 전달된 초기 상태를 React 앱이 재활성화하는 데 사용되는 것을 의미합니다.
 ```js
 import { Hydrate, DehydratedState } from 'react-query/hydration';
@@ -254,7 +254,7 @@ function App({ dehydratedState }: { dehydratedState: DehydratedState }) {
 ```
 
 
-## SuspenseListComponent
+## `SuspenseListComponent`
 여러 Suspense 컴포넌트의 로딩 순서를 조정합니다.
 ```js
 <SuspenseList>
@@ -267,7 +267,7 @@ function App({ dehydratedState }: { dehydratedState: DehydratedState }) {
 <SuspenseList/>
 ```
 
-## Throw
+## `Throw`
 잘못된 Element type을 가진 React Component를 렌더링하려 할 때 발생하는 예외를 처리합니다.
 ```js filename="react/packages/react-Reconciler/src/ReactFiber.js > createFiberFromTypeAndProps > 722 line" /Throw/
 // The type is invalid but it's conceptually a child that errored and not the
