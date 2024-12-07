@@ -27,7 +27,11 @@ const config: DocsThemeConfig = {
       </>
     )
   },
-  toc: {title: '목차'},
+  toc: {
+    title: '목차',
+    backToTop: '맨 위로',
+  },
+  gitTimestamp: ({ timestamp }) => <span>{timestamp.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })} 수정됨</span>,
   search: {
     placeholder: '검색어를 입력하세요.',
   },
