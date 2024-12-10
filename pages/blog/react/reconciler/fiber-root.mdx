@@ -1,4 +1,5 @@
 # React-reconciler | FiberRoot (19.0.0)
+`const root = ReactDOM.createRoot(document.getElementById('root'));{:jsx}`를 통해 생성되는 `Fiber` 트리의 최상위입니다. FiberRoot를 통해 현재 화면에 렌더링된 트리(current)와 새로운 트리(alternate)를 관리합니다.
 
 ```js filename="react/packages/react-reconciler/src/ReactInternalTypes.js"
 type BaseFiberRootProperties = {
