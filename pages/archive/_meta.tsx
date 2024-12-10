@@ -1,6 +1,6 @@
 export default {
-  'declarative-programming': {
-    title: 'Declarative programming',
+  'declarative-react': {
+    title: 'Declarative React',
   },
   mac: {
     title: 'Mac setting',
@@ -11,4 +11,7 @@ export default {
   vscode: {
     title: 'VSCode setting',
   },
+  slack: {
+    title: 'Slack setting',
+  }
 }
