@@ -2,11 +2,8 @@ export default {
   reconciler: {
     title: 'Reconciler',
   },
-  'react-types': {
-    title: 'Shared | ReactTypes',
-  },
-  'react-symbols': {
-    title: 'Shared | ReactSymbols',
+  shared: {
+    title: 'Shared',
   },
   suspense: {
     title: 'Suspense',
