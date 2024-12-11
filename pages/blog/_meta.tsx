@@ -17,6 +17,9 @@ export default {
   test: {
     title: 'Test',
   },
+  github: {
+    title: 'Github',
+  },
   etc: {
     title: 'Etc',
   },

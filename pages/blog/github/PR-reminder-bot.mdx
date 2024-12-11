@@ -1,0 +1,66 @@
+# Git PR reminder bot
+평일 오전 8시 PR 목록과 reviewer들을 슬랙 메시지로 보내는 봇을 만들어봅니다.
+
+1. Repository를 생성합니다.
+2. Github settings > Developers settings > Personal Access Tokens > tokens 을 발급합니다.
+3. 생성한 Repository Settings > Secrets and variables > Actions > New repository secret에 `PERSONAL_ACCESS_TOKEN`을 추가합니다.
+4. [Slack API](https://api.slack.com)에 Your Apps > Create New App에서 앱을 생성하고 알림 받을 채널을 설정합니다.
+5. Incoming Webhooks 기능을 추가하고 Web hook URL을 복사합니다.
+6. 생성한 Repository Settings > Secrets and variables > Actions > New repository secret에 `SLACK_WEBHOOK_URL`을 추가합니다.
+7. 모든 Repository의 PR을 가져오는 기능을 수행하는 index.mjs, Github actions에서 평일 오전 8시에 실행시킬 yml 파일을 Repository에 추가합니다.
+
+```js filename="index.mjs" "/org-name/"
+(async () => {
+  let SLACK_PR_MESSAGES = "*PR Reminder bot* \n";
+  
+  const repos = await fetch("https://api.github.com/orgs/org-name/repos", {
+    headers: {
+      Authorization: `Bearer ${process.env.TOKEN}`,
+    },
+  }).then((res) => res.json());
+
+  const repoNames = repos.map((repo) => repo.name);
+
+  for (const repo of repoNames) {
+    const PRs = await fetch(`https://api.github.com/repos/org-name/${repo}/pulls`, {
+      headers: {
+        Authorization: `Bearer ${process.env.TOKEN}`,
+      },
+    }).then((res) => res.json());
+
+    for (const PR of PRs) {
+      SLACK_PR_MESSAGES += `*${repo}* <${PR.html_url}|${PR.title}>\n`;
+
+      for (const reviewer of PR.requested_reviewers) {
+        SLACK_PR_MESSAGES += `• *Reviewer*: <${reviewer.html_url}|${reviewer.login}>\n`;
+      }
+    }
+  }
+
+  if (SLACK_PR_MESSAGES === "*PR Reminder bot* \n") {
+    SLACK_PR_MESSAGES += "No PRs found.";
+  }
+
+  await fetch(process.env.SLACK_WEBHOOK_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text: SLACK_PR_MESSAGES }),
+  })
+})();
+```
+
+```bash filename=".github/workflows/reminder.yml"
+name: PR Reminder
+
+on:
+  schedule:
+    - cron: "0 23 * * 0-4"
+  workflow_dispatch:
+
+jobs:
+  send-pr-reminder:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: TOKEN="${{ secrets.PERSONAL_ACCESS_TOKEN }}" SLACK_WEBHOOK_URL="${{ secrets.SLACK_WEBHOOK_URL }}" node index.mjs
+```

@@ -17,9 +17,6 @@ export default {
   'api-design-first': {
     title: 'API design first',
   },
-  git: {
-    title: 'Git 명령어 모음',
-  },
   'terminal-ascii-art': {
     title: 'Terminal ASCII art',
   },
