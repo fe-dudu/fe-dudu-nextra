@@ -8,13 +8,16 @@ export default {
   fiber: {
     title: 'Fiber',
   },
+  'fiber-flags': {
+    title: 'FiberFlags',
+  },
   lane: {
     title: 'Lane',
   },
-  flag: {
-    title: 'Flag',
+  'hook-effect-tags': {
+    title: 'HookEffectTags',
   },
-  worktag: {
-    title: 'WorkTag',
+  worktags: {
+    title: 'WorkTags',
   },
 }
