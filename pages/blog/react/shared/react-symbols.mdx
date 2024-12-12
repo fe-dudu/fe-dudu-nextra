@@ -1,26 +1,50 @@
 # Shared | ReactSymbols (19.0.0)
+```js filename="react/packages/shared/ReactSymbols.js"
+export const REACT_LEGACY_ELEMENT_TYPE: symbol = Symbol.for('react.element');
+export const REACT_ELEMENT_TYPE: symbol = renameElementSymbol? Symbol.for('react.transitional.element'): REACT_LEGACY_ELEMENT_TYPE;
+export const REACT_PORTAL_TYPE: symbol = Symbol.for('react.portal');
+export const REACT_FRAGMENT_TYPE: symbol = Symbol.for('react.fragment');
+export const REACT_STRICT_MODE_TYPE: symbol = Symbol.for('react.strict_mode');
+export const REACT_PROFILER_TYPE: symbol = Symbol.for('react.profiler');
+export const REACT_PROVIDER_TYPE: symbol = Symbol.for('react.provider');
+export const REACT_CONSUMER_TYPE: symbol = Symbol.for('react.consumer');
+export const REACT_CONTEXT_TYPE: symbol = Symbol.for('react.context');
+export const REACT_FORWARD_REF_TYPE: symbol = Symbol.for('react.forward_ref');
+export const REACT_SUSPENSE_TYPE: symbol = Symbol.for('react.suspense');
+export const REACT_SUSPENSE_LIST_TYPE: symbol = Symbol.for('react.suspense_list');
+export const REACT_MEMO_TYPE: symbol = Symbol.for('react.memo');
+export const REACT_LAZY_TYPE: symbol = Symbol.for('react.lazy');
+export const REACT_SCOPE_TYPE: symbol = Symbol.for('react.scope');
+export const REACT_DEBUG_TRACING_MODE_TYPE: symbol = Symbol.for('react.debug_trace_mode');
+export const REACT_OFFSCREEN_TYPE: symbol = Symbol.for('react.offscreen');
+export const REACT_LEGACY_HIDDEN_TYPE: symbol = Symbol.for('react.legacy_hidden');
+export const REACT_TRACING_MARKER_TYPE: symbol = Symbol.for('react.tracing_marker');
+export const REACT_MEMO_CACHE_SENTINEL: symbol = Symbol.for('react.memo_cache_sentinel');
+export const REACT_POSTPONE_TYPE: symbol = Symbol.for('react.postpone');
+```
 
-- `REACT_CONTEXT_TYPE`
+
+### `REACT_CONTEXT_TYPE`
 ```js
 const REACT_CONTEXT_TYPE: symbol = Symbol.for('react.context');
 
 const Context = React.createContext(false);
 ```
-- `REACT_PROVIDER_TYPE`
+### `REACT_PROVIDER_TYPE`
 ```js
 const REACT_PROVIDER_TYPE: symbol = Symbol.for('react.provider');
 
 const Context = React.createContext(false);
 <Context.Provider>...</Context.Provider>
 ```
-- `REACT_CONSUMER_TYPE`
+### `REACT_CONSUMER_TYPE`
 ```js
 const REACT_CONSUMER_TYPE: symbol = Symbol.for('react.consumer');
 
 const Context = React.createContext(false);
 <Context.Consumer>...</Context.Consumer>
 ```
-- `REACT_ELEMENT_TYPE`
+### `REACT_ELEMENT_TYPE`
 ```js
 const REACT_ELEMENT_TYPE: symbol = Symbol.for('react.transitional.element');
 
@@ -35,14 +59,14 @@ const REACT_ELEMENT_TYPE: symbol = Symbol.for('react.transitional.element');
 <React.StrictMode />
 <React.Suspense />
 ```
-- `REACT_FRAGMENT_TYPE`
+### `REACT_FRAGMENT_TYPE`
 ```js
 const REACT_FRAGMENT_TYPE: symbol = Symbol.for('react.fragment');
 
 <React.Fragment />
 <></>
 ```
-- `REACT_FORWARD_REF_TYPE`
+### `REACT_FORWARD_REF_TYPE`
 ```js
 const REACT_FORWARD_REF_TYPE: symbol = Symbol.for('react.forward_ref');
 
@@ -56,7 +80,7 @@ const ForwardRefComponent = React.forwardRef((props, ref) =>
   React.createElement(Component, {forwardedRef: ref, ...props}),
 );
 ```
-- `REACT_LAZY_TYPE`
+### `REACT_LAZY_TYPE`
 ```js
 const REACT_LAZY_TYPE: symbol = Symbol.for('react.lazy');
 
@@ -68,7 +92,7 @@ class Component extends React.Component {
 
 const LazyComponent = React.lazy(() => Component);
 ```
-- `REACT_MEMO_TYPE`
+### `REACT_MEMO_TYPE`
 ```js
 const REACT_MEMO_TYPE: symbol = Symbol.for('react.memo');
 
@@ -80,32 +104,32 @@ class Component extends React.Component {
 
 const MemoComponent = React.memo(Component);
 ```
-- `REACT_PORTAL_TYPE`
+### `REACT_PORTAL_TYPE`
 ```js
 const REACT_PORTAL_TYPE: symbol = Symbol.for('react.portal');
 
 const div = document.createElement('div');
 const portal = ReactDOM.createPortal(<div />, div);
 ```
-- `REACT_PROFILER_TYPE`
+### `REACT_PROFILER_TYPE`
 ```js
 const REACT_PROFILER_TYPE: symbol = Symbol.for('react.profiler');
 
 <React.Profiler id="foo" onRender={() => {}}/>
 ```
-- `REACT_STRICT_MODE_TYPE`
+### `REACT_STRICT_MODE_TYPE`
 ```js
 const REACT_STRICT_MODE_TYPE: symbol = Symbol.for('react.strict_mode');
 
 <React.StrictMode />
 ```
-- `REACT_SUSPENSE_TYPE`
+### `REACT_SUSPENSE_TYPE`
 ```js
 const REACT_SUSPENSE_TYPE: symbol = Symbol.for('react.suspense');
 
 <React.Suspense />
 ```
-- `REACT_SUSPENSE_LIST_TYPE`
+### `REACT_SUSPENSE_LIST_TYPE`
 ```js
 const REACT_SUSPENSE_LIST_TYPE: symbol = Symbol.for('react.suspense_list');
 

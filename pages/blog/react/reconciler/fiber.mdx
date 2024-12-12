@@ -36,21 +36,20 @@ export type Fiber = {
 ```
 
 ## `tag`
-렌더링 과정에서 파이버를 어떻게 처리할지 결정합니다.
+[WorkTag](/blog/react/reconciler-worktag)를 통해 렌더링 과정에서 `Fiber`를 어떻게 처리할지 결정합니다.
 
-[WorkTag](/blog/react/reconciler-worktag)
 
 ## `key`
 `Root`에서 `WorkinProgress`, `current` 간 동일 요소를 판별하는데 사용됩니다.
 
 ## `elementType`
-재조정(reconciliation) 중에 정체성을 유지하기 위해 사용되는 element.type의 값입니다.
+[ReactSymbols](/blog/react/shared/react-symbols) 값으로 구분됩니다.
 
 ## `type`
-`Fiber`와 연결된 해석된 함수 또는 클래스입니다.
+컴포넌트나 요소의 유형을 나타냅니다. (React Component, Custom Component, HTML element 등)
 
 ## `stateNode`
-`Fiber`와 연결된 로컬 상태입니다.
+class component의 `this` 값을 참조합니다.
 
 ## `return`
 부모 `Fiber`를 참조합니다.
