@@ -49,7 +49,16 @@ export type Fiber = {
 컴포넌트나 요소의 유형을 나타냅니다. (React Component, Custom Component, HTML element 등)
 
 ## `stateNode`
-class component의 `this` 값을 참조합니다.
+1. `Profiler`
+2. `OffscreenComponent`
+3. `LegacyHiddenComponent`
+4. `TracingMarkerComponent`
+5. `DehydratedFragment`
+6. `ReactPortal`
+7. `ClassComponent`
+8. `HostHoistable`
+
+관련 값을 가지며 DOM 접근 정보나 Class component의 `this` 값을 참조하는데에 주로 쓰입니다.
 
 ## `return`
 부모 `Fiber`를 참조합니다.
