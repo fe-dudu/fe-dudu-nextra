@@ -134,7 +134,12 @@ export type FiberRoot = {
 
 ## BaseFiberRootProperties
 **tag**
--  fiber node의 유형을 식별하기 위한 [WorkTag](/blog/react/reconciler/worktag)를 의미합니다.
+```js filename="react/packages/react-reconciler/src/ReactRootTags.js"
+export type RootTag = 0 | 1;
+export const LegacyRoot = 0;
+export const ConcurrentRoot = 1;
+```
+-  레거시 동작인지 동시성 모드를 지원하는지 나타냅니다.
 
 **containerInfo**
 ```js filename="react/packages/react-dom-bindings/src/clients/ReactFiberConfigDOM.js"
