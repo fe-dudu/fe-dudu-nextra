@@ -2,6 +2,9 @@ export default {
   'fiber-architecture': {
     title: 'Fiber architecture',
   },
+  'fiber-stack': {
+    title: 'Fiber Stack',
+  },
   'fiber-root': {
     title: 'FiberRoot',
   },
