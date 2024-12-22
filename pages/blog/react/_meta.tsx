@@ -1,12 +1,12 @@
 export default {
+  scheduler: {
+    title: 'Scheduler',
+  },
   reconciler: {
     title: 'Reconciler',
   },
   shared: {
     title: 'Shared',
-  },
-  scheduler: {
-    title: 'Scheduler',
   },
   suspense: {
     title: 'Suspense',
