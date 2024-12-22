@@ -5,6 +5,9 @@ export default {
   shared: {
     title: 'Shared',
   },
+  scheduler: {
+    title: 'Scheduler',
+  },
   suspense: {
     title: 'Suspense',
   },
