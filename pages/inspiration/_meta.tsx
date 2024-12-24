@@ -1,6 +1,7 @@
 export default {
   '2nd-switch-jobs': {
     title: '💭 2번째 이직',
+    display: 'hidden'
   },
   'happy-moment': {
     title: '💭 행복한 순간',
