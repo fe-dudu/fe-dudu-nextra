@@ -6,7 +6,6 @@ export default {
   career: {
     type: 'page',
     title: 'Career',
-    display: 'hidden'
   },
   blog: {
     type: 'page',
