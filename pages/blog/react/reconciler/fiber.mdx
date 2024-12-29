@@ -82,13 +82,13 @@ DOM 요소에 대한 참조 정보를 저장합니다.
 이전 렌더링에 사용된 `props`입니다.
 
 ## `updateQueue`
-상태 업데이트와 콜백을 저장하는 큐입니다.
+effect, events, (syncExternal)store를 저장하는 큐입니다.
 
 ## `memoizedState`
 현재 렌더링에 사용된 상태입니다.
 
 ## `dependencies`
-컨텍스트, 이벤트 관련 종속성입니다.
+현재 Fiber에서 종속된 `context`를 나타냅니다.
 
 ## `mode`
 렌더링 모드 제어 관련 정보입니다.

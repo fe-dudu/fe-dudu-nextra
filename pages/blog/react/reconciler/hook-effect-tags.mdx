@@ -1,27 +1,38 @@
 # React-reconciler | HookEffectTags (19.0.0)
 ```js filename="react/packages/react-reconciler/src/ReactHookEffectTags.js"
 export type HookFlags = number;
-export const NoFlags = /*   */ 0b0000;
-export const HasEffect = /* */ 0b0001;
-export const Insertion = /* */ 0b0010;
-export const Layout = /*    */ 0b0100;
-export const Passive = /*   */ 0b1000;
+
+export const NoFlags = /*   */ 0b0000; // 0
+
+// Represents whether effect should fire.
+export const HasEffect = /* */ 0b0001; // 1
+
+// Represents the phase in which the effect (not the clean-up) fires.
+export const Insertion = /* */ 0b0010; // 2
+export const Layout = /*    */ 0b0100; // 4
+export const Passive = /*   */ 0b1000; // 8
 ```
 
 ### `NoFlags`
-- `useInsertionEffect`, `useLayoutEffect`, `useEffect` 모두 없음을 나타냅니다.
+- Flag가 없음을 나타내지만 실제로 사용되지 않습니다.
 
 ### `HasEffect`
-- `useInsertionEffect`, `useLayoutEffect`, `useEffect` 중 1개가 있음을 나타냅니다.
+- `useInsertionEffect`, `useLayoutEffect`, `useEffect` 중 1개를 실행시켜야 함을 비트 연산자를 통해 나타냅니다.
+```js
+commitHookPassiveMountEffects(
+  finishedWork,
+  HookPassive | HookHasEffect, // 9
+);
+```
 
 ### `Insertion`
-- `useInsertionEffect`가 있음을 나타냅니다.
+- `useInsertionEffect`를 나타냅니다.
 - 주로 Emotion, styled-components에서 스타일 태그를 삽입할 때 사용됩니다.
 
 ### `Layout`
-- `useLayoutEffect`가 있음을 나타냅니다.
+- `useLayoutEffect`를 나타냅니다.
 - 렌더링 전 실행되는 로직입니다.
 
 ### `Passive`
-- `useEffect`가 있음을 나타냅니다.
+- `useEffect`를 나타냅니다.
 - 렌더링 후 실행되는 로직입니다.

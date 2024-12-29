@@ -1,4 +1,7 @@
 export default {
+  'fiber-hooks': {
+    title: 'Fiber Hooks',
+  },
   'fiber-architecture': {
     title: 'Fiber architecture',
   },
@@ -11,11 +14,11 @@ export default {
   fiber: {
     title: 'Fiber',
   },
-  'fiber-flags': {
-    title: 'FiberFlags',
-  },
   lane: {
     title: 'Lane',
+  },
+  'fiber-flags': {
+    title: 'FiberFlags',
   },
   'hook-effect-tags': {
     title: 'HookEffectTags',
