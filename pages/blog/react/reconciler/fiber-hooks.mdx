@@ -1,11 +1,11 @@
 import { Callout } from 'nextra/components'
 
-# React-reconciler | Fiber Hooks (19.0.0) 작성 중
+# React-reconciler | Fiber Hooks (19.0.0) 작성 중 ⚠️
 [**React v19 Hooks**](https://react.dev/reference/react/hooks)에서 소개되는 **Hook**에 대해 알아봅니다.
 
 ## ReactFiberHooks 공통 로직
 
-### Hook
+### `Hook`
 ```js filename="react/packages/react-reconciler/src/ReactFiberHooks.js"
 export type Hook = {
   memoizedState: any,
@@ -15,13 +15,22 @@ export type Hook = {
   next: Hook | null,
 };
 ```
-- **memoizedState**: 메모이제이션된 상태를 저장합니다.
-- **baseState**: 초기 상태를 저장합니다.
-- **baseQueue**: 렌더링 중단 또는 연기된 업데이트를 저장하며, 이후 렌더링에서 다시 사용됩니다.
-- **queue**: 최신 상태 업데이트 요청을 임시로 저장하며, 렌더링 전에 처리됩니다.
-- **next**: linked list에서 다음 `Hook` 객체를 가리킵니다.
+**memoizedState**
+- 메모이제이션된 상태를 저장합니다.
 
-### mountWorkInProgressHook
+**baseState**
+- 초기 상태를 저장합니다.
+
+**baseQueue**
+- 렌더링 중단 또는 연기된 업데이트를 저장하며, 이후 렌더링에서 다시 사용됩니다.
+
+**queue**
+- 최신 상태 업데이트 요청을 임시로 저장하며, 렌더링 전에 처리됩니다.
+
+**next**
+- linked list에서 다음 `Hook` 객체를 가리킵니다.
+
+### `mountWorkInProgressHook`
 ```js filename="react/packages/react-reconciler/src/ReactFiberHooks.js"
 let currentlyRenderingFiber: Fiber = (null: any);
 let workInProgressHook: Hook | null = null;
@@ -47,7 +56,7 @@ function mountWorkInProgressHook(): Hook {
 2. `workInProgressHook`이 `null`인지 체크하고, linked list 혹은 `memoizedState`에 할당합니다.
 3. 현재 작업 중인 `Hook`을 반환합니다.
 
-### updateWorkInProgressHook
+### `updateWorkInProgressHook`
 ```js filename="react/packages/react-reconciler/src/ReactFiberHooks.js" /nextCurrentHook/
 let currentHook: Hook | null = null;
 let workInProgressHook: Hook | null = null;
@@ -115,7 +124,28 @@ function updateWorkInProgressHook(): Hook {
 5. `workInProgressHook`이 `null`인지 체크하고, linked list 혹은 `memoizedState`에 할당합니다.
 6. `workInProgressHook`을 반환합니다.
 
-### Dispatcher
+### `areHookInputsEqual`
+```js filename="react/packages/react-reconciler/src/ReactFiberHooks.js"
+function areHookInputsEqual(
+  nextDeps: Array<mixed>,
+  prevDeps: Array<mixed> | null,
+): boolean {
+  if (prevDeps === null) {
+    return false;
+  }
+
+  for (let i = 0; i < prevDeps.length && i < nextDeps.length; i++) {
+    if (is(nextDeps[i], prevDeps[i])) {
+      continue;
+    }
+    return false;
+  }
+  return true;
+}
+```
+이전 의존성 배열(prevDeps)과 새로운 의존성 배열(nextDeps)을 비교하여 동일한지 여부를 반환합니다.
+
+### `Dispatcher`
 ```js filename="react/packages/react-reconciler/src/ReactFiberHooks.js"
 const HooksDispatcherOnMount: Dispatcher = {
   readContext,
@@ -168,12 +198,38 @@ const HooksDispatcherOnUpdate: Dispatcher = {
   useMemoCache,
   useCacheRefresh: updateRefresh,
 };
+
+const HooksDispatcherOnRerender: Dispatcher = {
+  readContext,
+  use,
+  useCallback: updateCallback,
+  useContext: readContext,
+  useEffect: updateEffect,
+  useImperativeHandle: updateImperativeHandle,
+  useInsertionEffect: updateInsertionEffect,
+  useLayoutEffect: updateLayoutEffect,
+  useMemo: updateMemo,
+  useReducer: rerenderReducer,
+  useRef: updateRef,
+  useState: rerenderState,
+  useDebugValue: updateDebugValue,
+  useDeferredValue: rerenderDeferredValue,
+  useTransition: rerenderTransition,
+  useSyncExternalStore: updateSyncExternalStore,
+  useId: updateId,
+  useHostTransitionStatus: useHostTransitionStatus,
+  useFormState: rerenderActionState,
+  useActionState: rerenderActionState,
+  useOptimistic: rerenderOptimistic,
+  useMemoCache,
+  useCacheRefresh: updateRefresh,
+};
 ```
-다음과 같이 mount, update 별로 정의된 `Hook`들을 알아봅니다.
+다음과 같이 mount, update, rerender 상황 별로 정의된 `Hook`들을 알아봅니다.
 
 ## use
 <Callout type="info" emoji="ℹ️">
-  [`use`](https://react.dev/reference/react/use)는 `Promise`나 `context`와 같은 데이터를 참조합니다. 하위 컴포넌트에서 `Promise` 객체를 받아 `use` 훅을 통해 `resolve`하거나 `Suspense`의 fallback UI를 노출시킵니다. `useContext`를 대체하기도 합니다.
+  [`use`](https://react.dev/reference/react/use)는 `Promise`나 `context`와 같은 데이터를 참조합니다. 하위 컴포넌트에서 `Promise` 객체를 받아 `use` 훅을 통해 resolve하거나 `Suspense`의 fallback UI를 노출시킵니다. `useContext`를 대체하기도 합니다.
 </Callout>
 ```js filename="react/packages/react-reconciler/src/ReactFiberThenable.js"
 let suspendedThenable: Thenable<any> | null = null;
@@ -328,23 +384,6 @@ function use<T>(usable: Usable<T>): T {
 </Callout>
 
 ```js filename="react/packages/react-reconciler/src/ReactFiberFlags.js"
-function areHookInputsEqual(
-  nextDeps: Array<mixed>,
-  prevDeps: Array<mixed> | null,
-): boolean {
-  if (prevDeps === null) {
-    return false;
-  }
-
-  for (let i = 0; i < prevDeps.length && i < nextDeps.length; i++) {
-    if (is(nextDeps[i], prevDeps[i])) {
-      continue;
-    }
-    return false;
-  }
-  return true;
-}
-
 function mountCallback<T>(callback: T, deps: Array<mixed> | void | null): T {
   const hook = mountWorkInProgressHook();
   const nextDeps = deps === undefined ? null : deps;
@@ -366,9 +405,11 @@ function updateCallback<T>(callback: T, deps: Array<mixed> | void | null): T {
   return callback;
 }
 ```
-- `areHookInputsEqual`은 이전 의존성 배열(prevDeps)과 새로운 의존성 배열(nextDeps)을 비교하여 동일한지 여부를 반환합니다.
-- `mountCallback`은 mount 시 `memoizedState`에 캐시할 함수와 새로운 의존성 배열(nextDeps)을 저장합니다.
-- `updateCallback`은 update할 때 `memoizedState`에 저장된 이전 의존성 배열(prevDeps)과 비교하여 같으면 이전 상태를 return하고 같지 않으면 새로 저장합니다.
+**mountCallback**
+- mount 시 `memoizedState`에 캐시할 함수와 새로운 의존성 배열(nextDeps)을 저장합니다.
+
+**updateCallback** 
+- update할 때 `memoizedState`에 저장된 이전 의존성 배열(prevDeps)과 비교하여 같으면 이전 상태를 return하고 같지 않으면 새로 저장합니다.
 
 ## useContext
 <Callout type="info" emoji="ℹ️">
@@ -420,9 +461,14 @@ function readContextForConsumer<T>(
   return value;
 }
 ```
-- `lastContextDependency`은 이전 `Fiber`를 렌더링할 때 의존된 `context`입니다.
-- `isPrimaryRenderer`는 ReactDOM을 사용하는지 여부를 나타내는 플래그입니다. Legacy SSR, React Native, test 환경에서는 `false`일 수 있습니다.
-- `lastContextDependency`가 없다면 현재 렌더링 중인 Fiber(consumer)에 대해 `dependencies`를 생성합니다.
+**lastContextDependency**
+- 이전 `Fiber`를 렌더링할 때 의존된 `context`입니다.
+
+**isPrimaryRenderer**
+- ReactDOM을 사용하는지 여부를 나타내는 플래그입니다. Legacy SSR, React Native, test 환경에서는 `false`일 수 있습니다.
+
+**readContextForConsumer**
+- `lastContextDependency`가 없다면 현재 렌더링 중인 `Fiber`(consumer)에 대해 `dependencies`를 생성합니다.
 - `lastContextDependency`가 있다면 linked list에 `contextItem`을 추가합니다.
 
 
@@ -451,37 +497,7 @@ export type SimpleEffect = {
   next: Effect,
 };
 
-export type ResourceEffectIdentity = {
-  resourceKind: typeof ResourceEffectIdentityKind,
-  tag: HookFlags,
-  inst: EffectInstance,
-  create: () => mixed,
-  deps: Array<mixed> | void | null,
-  next: Effect,
-};
-
-export type ResourceEffectUpdate = {
-  resourceKind: typeof ResourceEffectUpdateKind,
-  tag: HookFlags,
-  inst: EffectInstance,
-  update: ((resource: mixed) => void) | void,
-  deps: Array<mixed> | void | null,
-  next: Effect,
-  identity: ResourceEffectIdentity,
-};
-
-type StoreConsistencyCheck<T> = {
-  value: T,
-  getSnapshot: () => T,
-};
-
-type EventFunctionPayload<Args, Return, F: (...Array<Args>) => Return> = {
-  ref: {
-    eventFn: F,
-    impl: F,
-  },
-  nextImpl: F,
-};
+...
 
 export type FunctionComponentUpdateQueue = {
   lastEffect: Effect | null,
@@ -614,28 +630,269 @@ function updateEffect(
   updateEffectImpl(PassiveEffect, HookPassive, create, deps);
 }
 ```
-- `EffectInstance`: `resource` (DOM 참조, data fetching), `destroy`(clean-up function)을 관리합니다.
-- `createFunctionComponentUpdateQueue`: `Fiber`(컴포넌트)의 `updateQueue`가 비어있을 때 새롭게 생성합니다.
-- `createEffectInstance`: 빈 `EffectInstance` 객체를 생성합니다.
-- `pushEffectImpl`: `currentlyRenderingFiber`(컴포넌트)의 `updateQueue`를 가져오고 `updateQueue.lastEffect`의 linked list (next)에 삽입합니다.
-- `mountEffectImpl`: mount 시 `createEffectInstance`에 의해 생성된 새로운 `EffectInstance`를 `updateQueue.lastEffect`에 삽입합니다.
-- `updateEffectImpl`: update 시 `nextDeps`, `prevDeps`를 비교하여 동일하다면 `HookHasEffect` 태그를 제거하여 linked list에 추가하되 실행하지 않도록 하고, 동일하지 않다면 linked list에 추가합니다.
+**EffectInstance**
+- `resource` (DOM 참조, data fetching 등), `destroy`(clean-up function)을 관리합니다.
+
+**createEffectInstance**
+- 빈 `EffectInstance` 객체를 생성합니다.
+
+**SimpleEffect**
+- `tag`: [HookEffectTags](/blog/react/reconciler/hook-effect-tags) 값을 갖습니다.
+- `inst`: `EffectInstance` 값을 갖는 객체입니다.
+- `create`: (useEffect 1번째 매개변수) set-up, clean-up 함수를 나타냅니다.
+- `deps`: (useEffect 2번째 매개변수) 의존성들을 나타냅니다.
+- `next`: 다음 effect를 가르킵니다.
+
+**createFunctionComponentUpdateQueue**
+- `Fiber`(컴포넌트)의 `updateQueue`가 비어있을 때 새롭게 생성합니다.
+
+**pushEffectImpl**
+- `currentlyRenderingFiber`(컴포넌트)의 `updateQueue`를 가져오고 `updateQueue.lastEffect`의 linked list (next)에 삽입합니다.
+
+**mountEffectImpl**
+- mount 시 `createEffectInstance`에 의해 생성된 새로운 `EffectInstance`를 `updateQueue.lastEffect`에 삽입합니다.
+
+**updateEffectImpl**
+- update 시 `nextDeps`, `prevDeps`를 비교하여 동일하다면 `HookHasEffect` HookFlag를 제거하여 linked list에 추가하되 `create` 함수가 동작하지 않도록 하고, 동일하지 않다면 `HookHasEffect` HookFlag를 포함하여 linked list에 추가하여 `create` 함수가 동작하도록 합니다.
+
+```js filename="react/packages/react-reconciler/src/ReactFiberCommitWorks.js" /{24}/
+function commitPassiveMountOnFiber(
+  finishedRoot: FiberRoot,
+  finishedWork: Fiber,
+  committedLanes: Lanes,
+  committedTransitions: Array<Transition> | null,
+  endTime: number,
+): void {
+  ...
+  const flags = finishedWork.flags;
+  switch (finishedWork.tag) {
+    case FunctionComponent:
+    case ForwardRef:
+    case SimpleMemoComponent: {
+      recursivelyTraversePassiveMountEffects(
+        finishedRoot,
+        finishedWork,
+        committedLanes,
+        committedTransitions,
+        endTime,
+      );
+      if (flags & Passive) {
+        commitHookPassiveMountEffects(
+          finishedWork,
+          HookPassive | HookHasEffect,
+        );
+      }
+      break;
+    }
+    ...
+  }
+  ...
+}
+```
+```js filename="react/packages/react-reconciler/src/ReactFiberCommitEffects.js" /{19}/
+export function commitHookPassiveMountEffects(
+  finishedWork: Fiber,
+  hookFlags: HookFlags,
+) {  
+  commitHookEffectListMount(hookFlags, finishedWork);
+}
+
+export function commitHookEffectListMount(
+  flags: HookFlags,
+  finishedWork: Fiber,
+) {
+  try {
+    const updateQueue: FunctionComponentUpdateQueue | null = (finishedWork.updateQueue: any);
+    const lastEffect = updateQueue !== null ? updateQueue.lastEffect : null;
+    if (lastEffect !== null) {
+      const firstEffect = lastEffect.next;
+      let effect = firstEffect;
+      do {
+        if ((effect.tag & flags) === flags) {
+          ...
+        }
+        effect = effect.next;
+      } while (effect !== firstEffect);
+    }
+  }
+  ...
+}
+```
+`effect.tag`가 `HasEffect | Passive`를 갖고 있지 않다면 실행되지 않습니다.
+
+> [HookEffectTags](/blog/react/reconciler/hook-effect-tags)를 참조하세요.
 
 ## useImperativeHandle
+<Callout type="info" emoji="ℹ️">
+  [`useImperativeHandle`](https://react.dev/reference/react/useImperativeHandle)은 Parent Component의 `ref`를 통해 Child Component의 `ref`를 조작할 수 있게 합니다.
+</Callout>
 ```js filename="react/packages/react-reconciler/src/ReactFiberFlags.js"
+function imperativeHandleEffect<T>(
+  create: () => T,
+  ref: {current: T | null} | ((inst: T | null) => mixed) | null | void,
+): void | (() => void) {
+  if (typeof ref === 'function') {
+    const refCallback = ref;
+    const inst = create();
+    const refCleanup = refCallback(inst);
+
+    return () => {
+      if (typeof refCleanup === 'function') {
+        refCleanup();
+      } else {
+        refCallback(null);
+      }
+    };
+  } else if (ref !== null && ref !== undefined) {
+    const refObject = ref;
+
+    const inst = create();
+    refObject.current = inst;
+    return () => {
+      refObject.current = null;
+    };
+  }
+}
+
+function mountImperativeHandle<T>(
+  ref: {current: T | null} | ((inst: T | null) => mixed) | null | void,
+  create: () => T,
+  deps: Array<mixed> | void | null,
+): void {
+  const effectDeps = deps !== null && deps !== undefined ? deps.concat([ref]) : null;
+
+  let fiberFlags: Flags = UpdateEffect | LayoutStaticEffect;
+
+  mountEffectImpl(
+    fiberFlags,
+    HookLayout,
+    imperativeHandleEffect.bind(null, create, ref),
+    effectDeps,
+  );
+}
+
+function updateImperativeHandle<T>(
+  ref: {current: T | null} | ((inst: T | null) => mixed) | null | void,
+  create: () => T,
+  deps: Array<mixed> | void | null,
+): void {
+  const effectDeps = deps !== null && deps !== undefined ? deps.concat([ref]) : null;
+
+  updateEffectImpl(
+    UpdateEffect,
+    HookLayout,
+    imperativeHandleEffect.bind(null, create, ref),
+    effectDeps,
+  );
+}
 ```
+**imperativeHandleEffect**
+- 함수인 경우 `create()` 함수를 호출하여 생성된 인스턴스를 `refCallback`에 전달합니다. 만약 `refCallback`이 함수를 반환하면 이를 호출하거나, 반환되지 않으면 `refCallback(null)`을 호출하여 정리합니다.
+- 객체인 경우 `ref.current`에 `create()` 함수를 호출하여 생성된 인스턴스를 할당하고 `refObject.current = null;` clean-up 함수를 반환합니다.
+
+**mountImperativeHandle**
+- 의존성이 있다면 `ref`를 의존성에 추가하고 `Layout` HookFlag로 `mountEffectImpl`를 호출합니다.
+
+**updateImperativeHandle**
+- 의존성이 있다면 `ref`를 의존성에 추가하고 `Layout` HookFlag로 `updateEffectImpl`를 호출합니다.
+
+<Callout type="warning" emoji="⚠️">
+  **useImperativeHandle이 useLayoutEffect와 동일한 시점에 실행되어야 하는 이유** <br/>
+  (`Layout` HookFlag 사용 이유) <br/><br/>
+  **useImperativeHandle**가 **useEffect**와 동일한 시점에 실행된다면 Parent Component의 **useEffect** 내부에서 parent `ref`로 child `ref`를 조작할 수 없습니다. 
+  그러므로 **useImperativeHandle**는 **useLayoutEffect**와 동일한 시점에 child `ref`를 참조하고 조작할 수 있음을 보장해야 합니다.
+</Callout>
+
+> [HookEffectTags](/blog/react/reconciler/hook-effect-tags)를 참조하세요.
 
 ## useLayoutEffect
+<Callout type="info" emoji="ℹ️">
+  [`useLayoutEffect`](https://react.dev/reference/react/useLayoutEffect)은 브라우저가 화면을 그리기 전에 실행되는 useEffect입니다. (성능을 저하시킬 수 있으므로 가능하면 useEffect를 사용하는 것이 권장됩니다.)
+</Callout>
 ```js filename="react/packages/react-reconciler/src/ReactFiberFlags.js"
+function mountLayoutEffect(
+  create: () => (() => void) | void,
+  deps: Array<mixed> | void | null,
+): void {
+  let fiberFlags: Flags = UpdateEffect | LayoutStaticEffect;
+  return mountEffectImpl(fiberFlags, HookLayout, create, deps);
+}
+
+function updateLayoutEffect(
+  create: () => (() => void) | void,
+  deps: Array<mixed> | void | null,
+): void {
+  return updateEffectImpl(UpdateEffect, HookLayout, create, deps);
+}
 ```
+- [useEffect](#useeffect)와 내부 구현은 같지만 HookFlag가 `Layout`으로 변경되어 paint 이전에 `create`함수가 실행됩니다.
+
+> [HookEffectTags](/blog/react/reconciler/hook-effect-tags)를 참조하세요.
 
 ## useInsertionEffect
+<Callout type="info" emoji="ℹ️">
+  [`useInsertionEffect`](https://react.dev/reference/react/useInsertionEffect)은 useLayoutEffect가 실행되기 전에 DOM에 요소를 삽입합니다. (CSS-in-JS Library 용도)
+</Callout>
 ```js filename="react/packages/react-reconciler/src/ReactFiberFlags.js"
+function mountInsertionEffect(
+  create: () => (() => void) | void,
+  deps: Array<mixed> | void | null,
+): void {
+  mountEffectImpl(UpdateEffect, HookInsertion, create, deps);
+}
+
+function updateInsertionEffect(
+  create: () => (() => void) | void,
+  deps: Array<mixed> | void | null,
+): void {
+  return updateEffectImpl(UpdateEffect, HookInsertion, create, deps);
+}
 ```
+- [useEffect](#useeffect)와 내부 구현은 같지만 HookFlag가 `Insertion`으로 변경되어 useLayoutEffect 실행 시점 이전에 `create`함수가 실행됩니다.
+
+> [HookEffectTags](/blog/react/reconciler/hook-effect-tags)를 참조하세요.
 
 ## useMemo
+<Callout type="info" emoji="ℹ️">
+  [`useMemo`](https://react.dev/reference/react/useMemo)는 렌더링 간 계산 결과를 캐시하는 데 사용됩니다.
+</Callout>
 ```js filename="react/packages/react-reconciler/src/ReactFiberFlags.js"
+function mountMemo<T>(
+  nextCreate: () => T,
+  deps: Array<mixed> | void | null,
+): T {
+  const hook = mountWorkInProgressHook();
+  const nextDeps = deps === undefined ? null : deps;
+  const nextValue = nextCreate();
+
+  hook.memoizedState = [nextValue, nextDeps];
+  return nextValue;
+}
+
+function updateMemo<T>(
+  nextCreate: () => T,
+  deps: Array<mixed> | void | null,
+): T {
+  const hook = updateWorkInProgressHook();
+  const nextDeps = deps === undefined ? null : deps;
+  const prevState = hook.memoizedState;
+
+  if (nextDeps !== null) {
+    const prevDeps: Array<mixed> | null = prevState[1];
+    if (areHookInputsEqual(nextDeps, prevDeps)) {
+      return prevState[0];
+    }
+  }
+  const nextValue = nextCreate();
+  hook.memoizedState = [nextValue, nextDeps];
+  return nextValue;
+}
 ```
+**mountMemo**
+- mount 시 `memoizedState`에 캐시할 `nextValue`와 새로운 의존성 배열(nextDeps)을 저장합니다.
+
+**updateMemo**
+- update할 때 `memoizedState`에 저장된 이전 의존성 배열(prevDeps)과 비교하여 같으면 이전 상태를 return하고 같지 않으면 새로 저장합니다.
 
 ## useReducer
 ```js filename="react/packages/react-reconciler/src/ReactFiberFlags.js"
@@ -646,10 +903,6 @@ function updateEffect(
 ```
 
 ## useState
-```js filename="react/packages/react-reconciler/src/ReactFiberFlags.js"
-```
-
-## useDebugValue
 ```js filename="react/packages/react-reconciler/src/ReactFiberFlags.js"
 ```
 
@@ -666,8 +919,58 @@ function updateEffect(
 ```
 
 ## useId
+<Callout type="info" emoji="ℹ️">
+  [`useId`](https://react.dev/reference/react/useId)는 접근성 속성에 전달할 수 있는 고유한 ID를 생성합니다.
+</Callout>
+
 ```js filename="react/packages/react-reconciler/src/ReactFiberFlags.js"
+let localIdCounter: number = 0;
+let globalClientIdCounter: number = 0;
+...
+
+function mountId(): string {
+  const hook = mountWorkInProgressHook();
+
+  const root = ((getWorkInProgressRoot(): any): FiberRoot);
+
+  const identifierPrefix = root.identifierPrefix;
+
+  let id;
+  if (getIsHydrating()) {
+    const treeId = getTreeId();
+
+    id = ':' + identifierPrefix + 'R' + treeId;
+
+    const localId = localIdCounter++;
+    if (localId > 0) {
+      id += 'H' + localId.toString(32);
+    }
+
+    id += ':';
+  } else {
+    const globalClientId = globalClientIdCounter++;
+    id = ':' + identifierPrefix + 'r' + globalClientId.toString(32) + ':';
+  }
+
+  hook.memoizedState = id;
+  return id;
+}
+
+function updateId(): string {
+  const hook = updateWorkInProgressHook();
+  const id: string = hook.memoizedState;
+  return id;
+}
 ```
+**identifierPrefix**
+- `createRoot`, `hydrateRoot`, `renderToPipeableStream`에서 옵션으로 넘길 수 있으며 `useId`에서 생성되는 ID에 접두어로 사용됩니다.
+
+**mountId**
+- `getIsHydrating()`(Server Side)일 때 대문자 `R`로 시작하고 트리 ID를 포함하며 컴포넌트에 여러 `useId`가 있는 경우 `H` + 순차번호를 추가합니다.
+- `getIsHydrating()`(Client Side)이 아닐 때 소문자 `r`로 시작하며 전역 카운터를 32진수로 변환한 값을 사용합니다.
+
+**updateId**
+- `mountId`에서 생성된 id를 반환합니다.
 
 ## useActionState
 ```js filename="react/packages/react-reconciler/src/ReactFiberFlags.js"

@@ -132,7 +132,7 @@ export type FiberRoot = {
 };
 ```
 
-## BaseFiberRootProperties
+### `BaseFiberRootProperties`
 **tag**
 ```js filename="react/packages/react-reconciler/src/ReactRootTags.js"
 export type RootTag = 0 | 1;
@@ -237,7 +237,7 @@ export function performWorkOnRoot(
 - 캐싱된 [Lane](/blog/react/reconciler/lane) 집합입니다.
 
 **identifierPrefix**
-- HTML 요소의 ID에 붙는 접두사입니다.
+- `useId` 훅 사용 시 ID에 붙는 접두사입니다. 한 페이지에 여러 React App이 있을 경우 주로 사용됩니다.
 
 **onUncaughtError**
 - 처리되지 않은 에러가 발생했을 때 호출되는 콜백입니다.
@@ -252,21 +252,21 @@ export function performWorkOnRoot(
 - React Forms의 상태를 추적합니다.
 
 
-## SuspenseCallbackOnlyFiberRootProperties
+### `SuspenseCallbackOnlyFiberRootProperties`
 **onHydrated**
 - Suspense 인스턴스가 수화된 후 호출됩니다.
 
 **onDeleted**
 - Suspense 인스턴스가 삭제된 후 호출됩니다.
 
-## UpdaterTrackingOnlyFiberRootProperties
+### `UpdaterTrackingOnlyFiberRootProperties`
 **memoizedUpdaters**
 - 메모이제이션된 업데이트를 추적합니다.
 
 **pendingUpdatersLaneMap**
 - 업데이트가 대기 중인 Fiber들의 Lane 맵입니다.
 
-## TransitionTracingOnlyFiberRootProperties
+### `TransitionTracingOnlyFiberRootProperties`
 **transitionCallbacks**
 - 전환과 관련된 콜백을 저장합니다.
 
@@ -276,7 +276,7 @@ export function performWorkOnRoot(
 **incompleteTransitions**
 - 완료되지 않은 전환을 저장합니다.
 
-## ProfilerCommitHooksOnlyFiberRootProperties
+### `ProfilerCommitHooksOnlyFiberRootProperties`
 **effectDuration**
 - 렌더링 사이클에서 실행된 모든 이펙트의 총 지속 시간입니다.
 

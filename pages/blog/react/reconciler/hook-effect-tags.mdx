@@ -1,4 +1,6 @@
 # React-reconciler | HookEffectTags (19.0.0)
+효율적이고 빠른 처리를 위해 2진수 기반 비트연산을 사용합니다.
+
 ```js filename="react/packages/react-reconciler/src/ReactHookEffectTags.js"
 export type HookFlags = number;
 
@@ -21,18 +23,18 @@ export const Passive = /*   */ 0b1000; // 8
 ```js
 commitHookPassiveMountEffects(
   finishedWork,
-  HookPassive | HookHasEffect, // 9
+  HookPassive | HookHasEffect, // 9 (0001, 1000을 OR 비트연산)
 );
 ```
 
 ### `Insertion`
 - `useInsertionEffect`를 나타냅니다.
-- 주로 Emotion, styled-components에서 스타일 태그를 삽입할 때 사용됩니다.
+- `useLayoutEffect` 실행 전 주로 Emotion, styled-components에서 스타일 태그를 삽입할 때 사용됩니다.
 
 ### `Layout`
 - `useLayoutEffect`를 나타냅니다.
-- 렌더링 전 실행되는 로직입니다.
+- DOM에 반영되기 전 실행되는 로직입니다.
 
 ### `Passive`
 - `useEffect`를 나타냅니다.
-- 렌더링 후 실행되는 로직입니다.
+- DOM에 반영된 후 실행되는 로직입니다.
