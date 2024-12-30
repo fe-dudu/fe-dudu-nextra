@@ -237,7 +237,7 @@ export function performWorkOnRoot(
 - 캐싱된 [Lane](/blog/react/reconciler/lane) 집합입니다.
 
 **identifierPrefix**
-- `useId` 훅 사용 시 ID에 붙는 접두사입니다. 한 페이지에 여러 React App이 있을 경우 주로 사용됩니다.
+- `createRoot`, `hydrateRoot`, `renderToPipeableStream`에서 옵션으로 넘길 수 있으며 `useId`에서 생성되는 ID에 접두어로 사용됩니다. 한 페이지에 여러 React App이 있을 경우 주로 사용됩니다.
 
 **onUncaughtError**
 - 처리되지 않은 에러가 발생했을 때 호출되는 콜백입니다.
