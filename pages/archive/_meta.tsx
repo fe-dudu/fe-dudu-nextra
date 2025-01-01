@@ -1,4 +1,7 @@
 export default {
+  'async-state': {
+    title: 'Async state',
+  },
   'declarative-react': {
     title: 'Declarative React',
   },
@@ -13,5 +16,5 @@ export default {
   },
   slack: {
     title: 'Slack setting',
-  }
+  },
 }
