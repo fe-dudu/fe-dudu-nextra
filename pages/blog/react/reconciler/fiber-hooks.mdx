@@ -1,6 +1,6 @@
 import { Callout } from 'nextra/components'
 
-# React-reconciler | Fiber Hooks (19.0.0) 작성 중 ⚠️
+# React-reconciler | Fiber Hooks (19.0.0)
 [**React v19 Hooks**](https://react.dev/reference/react/hooks)에서 소개되는 **Hook**에 대해 알아봅니다.
 
 ## ReactFiberHooks 공통 로직
@@ -22,10 +22,10 @@ export type Hook = {
 - 초기 상태를 저장합니다.
 
 **baseQueue**
-- 렌더링 중단 또는 연기된 업데이트를 저장하며, 이후 렌더링에서 다시 사용됩니다.
+- 렌더링 중단 또는 연기된 `Update`를 `UpdateQueue`에 저장하며, 이후 렌더링에서 다시 사용됩니다.
 
 **queue**
-- 최신 상태 업데이트 요청을 임시로 저장하며, 렌더링 전에 처리됩니다.
+- 업데이트를 진행해야 할 `Update` linked list입니다.
 
 **next**
 - linked list에서 다음 `Hook` 객체를 가리킵니다.
@@ -646,6 +646,800 @@ function updateId(): string {
 **updateId**
 - `mountId`에서 생성된 id를 반환합니다.
 
+## useReducer
+<Callout type="info" emoji="ℹ️">
+  [`useReducer`](https://react.dev/reference/react/useReducer)는 state를 action 기반으로 변형 할 수 있게 합니다.
+</Callout>
+```js filename="react/packages/react-reconciler/src/ReactFiberFlags.js"
+let currentlyRenderingFiber: Fiber = (null: any);
+
+function isRenderPhaseUpdate(fiber: Fiber): boolean {
+  const alternate = fiber.alternate;
+  return (
+    fiber === currentlyRenderingFiber ||
+    (alternate !== null && alternate === currentlyRenderingFiber)
+  );
+}
+
+function dispatchReducerAction<S, A>(
+  fiber: Fiber,
+  queue: UpdateQueue<S, A>,
+  action: A,
+): void {
+  const lane = requestUpdateLane(fiber);
+
+  const update: Update<S, A> = {
+    lane,
+    revertLane: NoLane,
+    action,
+    hasEagerState: false,
+    eagerState: null,
+    next: (null: any),
+  };
+
+  if (isRenderPhaseUpdate(fiber)) {
+    enqueueRenderPhaseUpdate(queue, update);
+  } else {
+    const root = enqueueConcurrentHookUpdate(fiber, queue, update, lane);
+    if (root !== null) {
+      startUpdateTimerByLane(lane);
+      scheduleUpdateOnFiber(root, fiber, lane);
+      entangleTransitionUpdate(root, queue, lane);
+    }
+  }
+}
+
+function mountReducer<S, I, A>(
+  reducer: (S, A) => S,
+  initialArg: I,
+  init?: I => S,
+): [S, Dispatch<A>] {
+  const hook = mountWorkInProgressHook();
+
+  let initialState;
+  if (init !== undefined) {
+    initialState = init(initialArg);
+  } else {
+    initialState = ((initialArg: any): S);
+  }
+
+  hook.memoizedState = hook.baseState = initialState;
+  
+  const queue: UpdateQueue<S, A> = {
+    pending: null,
+    lanes: NoLanes,
+    dispatch: null,
+    lastRenderedReducer: reducer,
+    lastRenderedState: (initialState: any),
+  };
+
+  hook.queue = queue;
+
+  const dispatch: Dispatch<A> = (queue.dispatch = (dispatchReducerAction.bind(
+    null,
+    currentlyRenderingFiber,
+    queue,
+  ): any));
+
+  return [hook.memoizedState, dispatch];
+}
+
+function updateReducer<S, I, A>(
+  reducer: (S, A) => S,
+  initialArg: I,
+  init?: I => S,
+): [S, Dispatch<A>] {
+  const hook = updateWorkInProgressHook();
+  return updateReducerImpl(hook, ((currentHook: any): Hook), reducer);
+}
+
+function updateReducerImpl<S, A>(
+  hook: Hook,
+  current: Hook,
+  reducer: (S, A) => S,
+): [S, Dispatch<A>] {
+  const queue = hook.queue;
+
+  if (queue === null) {
+    throw new Error(
+      'Should have a queue. You are likely calling Hooks conditionally, ' +
+        'which is not allowed. (https://react.dev/link/invalid-hook-call)',
+    );
+  }
+
+  queue.lastRenderedReducer = reducer;
+
+  let baseQueue = hook.baseQueue;
+
+  const pendingQueue = queue.pending;
+  if (pendingQueue !== null) {
+    if (baseQueue !== null) {
+      const baseFirst = baseQueue.next;
+      const pendingFirst = pendingQueue.next;
+      baseQueue.next = pendingFirst;
+      pendingQueue.next = baseFirst;
+    }
+    current.baseQueue = baseQueue = pendingQueue;
+    queue.pending = null;
+  }
+
+  const baseState = hook.baseState;
+  if (baseQueue === null) {
+    hook.memoizedState = baseState;
+  } else {
+    const first = baseQueue.next;
+    let newState = baseState;
+
+    let newBaseState = null;
+    let newBaseQueueFirst = null;
+    let newBaseQueueLast: Update<S, A> | null = null;
+    let update = first;
+    let didReadFromEntangledAsyncAction = false;
+
+    do {
+      const updateLane = removeLanes(update.lane, OffscreenLane);
+      const isHiddenUpdate = updateLane !== update.lane;
+
+      const shouldSkipUpdate = isHiddenUpdate
+        ? !isSubsetOfLanes(getWorkInProgressRootRenderLanes(), updateLane)
+        : !isSubsetOfLanes(renderLanes, updateLane);
+
+      if (shouldSkipUpdate) {
+        const clone: Update<S, A> = {
+          lane: updateLane,
+          revertLane: update.revertLane,
+          action: update.action,
+          hasEagerState: update.hasEagerState,
+          eagerState: update.eagerState,
+          next: (null: any),
+        };
+        if (newBaseQueueLast === null) {
+          newBaseQueueFirst = newBaseQueueLast = clone;
+          newBaseState = newState;
+        } else {
+          newBaseQueueLast = newBaseQueueLast.next = clone;
+        }
+        currentlyRenderingFiber.lanes = mergeLanes(
+          currentlyRenderingFiber.lanes,
+          updateLane,
+        );
+        markSkippedUpdateLanes(updateLane);
+      } else {
+        const revertLane = update.revertLane;
+        if (revertLane === NoLane) {
+          if (newBaseQueueLast !== null) {
+            const clone: Update<S, A> = {
+              lane: NoLane,
+              revertLane: NoLane,
+              action: update.action,
+              hasEagerState: update.hasEagerState,
+              eagerState: update.eagerState,
+              next: (null: any),
+            };
+            newBaseQueueLast = newBaseQueueLast.next = clone;
+          }
+          if (updateLane === peekEntangledActionLane()) {
+            didReadFromEntangledAsyncAction = true;
+          }
+        } else {
+          if (isSubsetOfLanes(renderLanes, revertLane)) {
+            update = update.next;
+
+            if (revertLane === peekEntangledActionLane()) {
+              didReadFromEntangledAsyncAction = true;
+            }
+            continue;
+          } else {
+            const clone: Update<S, A> = {
+              lane: NoLane,
+              revertLane: update.revertLane,
+              action: update.action,
+              hasEagerState: update.hasEagerState,
+              eagerState: update.eagerState,
+              next: (null: any),
+            };
+            if (newBaseQueueLast === null) {
+              newBaseQueueFirst = newBaseQueueLast = clone;
+              newBaseState = newState;
+            } else {
+              newBaseQueueLast = newBaseQueueLast.next = clone;
+            }
+
+            currentlyRenderingFiber.lanes = mergeLanes(
+              currentlyRenderingFiber.lanes,
+              revertLane,
+            );
+            markSkippedUpdateLanes(revertLane);
+          }
+        }
+
+        const action = update.action;
+        if (update.hasEagerState) {
+          newState = ((update.eagerState: any): S);
+        } else {
+          newState = reducer(newState, action);
+        }
+      }
+      update = update.next;
+    } while (update !== null && update !== first);
+
+    if (newBaseQueueLast === null) {
+      newBaseState = newState;
+    } else {
+      newBaseQueueLast.next = (newBaseQueueFirst: any);
+    }
+
+    if (!is(newState, hook.memoizedState)) {
+      markWorkInProgressReceivedUpdate();
+
+      if (didReadFromEntangledAsyncAction) {
+        const entangledActionThenable = peekEntangledActionThenable();
+        if (entangledActionThenable !== null) {
+          throw entangledActionThenable;
+        }
+      }
+    }
+
+    hook.memoizedState = newState;
+    hook.baseState = newBaseState;
+    hook.baseQueue = newBaseQueueLast;
+
+    queue.lastRenderedState = newState;
+  }
+
+  if (baseQueue === null) {
+    queue.lanes = NoLanes;
+  }
+
+  const dispatch: Dispatch<A> = (queue.dispatch: any);
+  return [hook.memoizedState, dispatch];
+}
+
+function rerenderReducer<S, I, A>(
+  reducer: (S, A) => S,
+  initialArg: I,
+  init?: I => S,
+): [S, Dispatch<A>] {
+  const hook = updateWorkInProgressHook();
+  const queue = hook.queue;
+
+  if (queue === null) {
+    throw new Error(
+      'Should have a queue. You are likely calling Hooks conditionally, ' +
+        'which is not allowed. (https://react.dev/link/invalid-hook-call)',
+    );
+  }
+
+  queue.lastRenderedReducer = reducer;
+
+  const dispatch: Dispatch<A> = (queue.dispatch: any);
+  const lastRenderPhaseUpdate = queue.pending;
+  let newState = hook.memoizedState;
+  if (lastRenderPhaseUpdate !== null) {
+    queue.pending = null;
+
+    const firstRenderPhaseUpdate = lastRenderPhaseUpdate.next;
+    let update = firstRenderPhaseUpdate;
+    do {
+      const action = update.action;
+      newState = reducer(newState, action);
+      update = update.next;
+    } while (update !== firstRenderPhaseUpdate);
+
+    if (!is(newState, hook.memoizedState)) {
+      markWorkInProgressReceivedUpdate();
+    }
+
+    hook.memoizedState = newState;
+
+    if (hook.baseQueue === null) {
+      hook.baseState = newState;
+    }
+
+    queue.lastRenderedState = newState;
+  }
+  return [newState, dispatch];
+}
+```
+**isRenderPhaseUpdate**
+- 현재 `fiber` 혹은 `fiber.alternate`가 작업 중인 `fiber`와 같다면 render phase로 `true`를 반환합니다.
+
+**dispatchReducerAction**
+- `useReducer`의 `dispatch` 함수 역할을 합니다.
+- action이 발생할 때마다 새로운 update 객체를 생성합니다.
+- render phase면 `queue.pending`에 추가합니다.
+- render phase가 아니면 concurrent 업데이트로 처리하고 fiber를 스케줄링합니다.
+
+**mountReducer**
+- `init` 초기화 함수가 있다면 실행하고 아니면 `initialArg` 초기 값을 지정합니다.
+- `queue`, `dispatch` 함수를 선언하고 반환합니다.
+
+**updateReducer**
+- `hook.queue.pending`가 있다면 `hook.baseQueue`에 병합시킵니다.
+- `hook.baseQueue` 없으면 현재 상태 `baseState`를 `memoizedState`에 할당하고 반환합니다.
+- `hook.baseQueue`를 순회하며 update를 skip할지 결정(`OffscreenLane`)하고 비동기 작업을 예약하며 `eagerState`, `reducer`를 사용하여 업데이트합니다.
+- 예약된 비동기 작업을 처리하고 반환합니다.
+- `useState`의 update 동작에서 재활용됩니다.
+- 이전 작업의 `baseState`, `hook.queue` 기반으로 작업이 되기 때문에 아래와 같은 로직에서 `count`는 2가 됩니다.
+```js /baseState/
+// 컴포넌트
+function MyButton () {
+  const [count, setCount] = useState(0);
+
+  function handleClick () {
+    setCount(prev => prev += 1); // 1번 작업이 hook.queue.next에 할당
+    setCount(prev => prev += 2); // 2번 작업이 hook.queue.next.next에 할당
+  }
+
+  return (
+    <button  onClick={handleClick} />
+  );
+}
+
+...
+
+// reconciler
+function updateReducerImpl<S, A>(
+  hook: Hook,
+  current: Hook,
+  reducer: (S, A) => S,
+): [S, Dispatch<A>] {
+
+  let baseQueue = hook.baseQueue;
+  const baseState = hook.baseState;
+  const first = baseQueue.next;
+  ...
+  let newState = baseState;
+  let newBaseState = null;
+  let update = first;
+do {
+  ... // queue를 비워냄. 마지막엔 2번 작업이 실행, newBaseState += 2
+  update = update.next;
+} while (update !== null && update !== first);
+  ...
+  hook.baseState = newBaseState;
+  ...
+}
+```
+
+**rerenderReducer**
+- `dispatch` 메소드에서 render phase라면 `queue.pending`에 `update`가 추가됩니다. 
+- 현재 작업 중인 `hook`에 `queue.pending`이 있다면 작업을 모두 실행시킵니다.
+- `useState`의 rerender 동작에서 재활용됩니다.
+
+## useState
+<Callout type="info" emoji="ℹ️">
+  [`useState`](https://react.dev/reference/react/useState)는 상태와 상태를 변경할 수 있는 dispatch 함수를 제공합니다.
+</Callout>
+```js filename="react/packages/react-reconciler/src/ReactFiberFlags.js"
+function basicStateReducer<S>(state: S, action: BasicStateAction<S>): S {
+  return typeof action === 'function' ? action(state) : action;
+}
+
+function dispatchSetState<S, A>(
+  fiber: Fiber,
+  queue: UpdateQueue<S, A>,
+  action: A,
+): void {
+  const lane = requestUpdateLane(fiber);
+  const didScheduleUpdate = dispatchSetStateInternal(
+    fiber,
+    queue,
+    action,
+    lane,
+  );
+  if (didScheduleUpdate) {
+    startUpdateTimerByLane(lane);
+  }
+}
+
+function dispatchSetStateInternal<S, A>(
+  fiber: Fiber,
+  queue: UpdateQueue<S, A>,
+  action: A,
+  lane: Lane,
+): boolean {
+  const update: Update<S, A> = {
+    lane,
+    revertLane: NoLane,
+    action,
+    hasEagerState: false,
+    eagerState: null,
+    next: (null: any),
+  };
+
+  if (isRenderPhaseUpdate(fiber)) {
+    enqueueRenderPhaseUpdate(queue, update);
+  } else {
+    const alternate = fiber.alternate;
+    if (
+      fiber.lanes === NoLanes &&
+      (alternate === null || alternate.lanes === NoLanes)
+    ) {
+      const lastRenderedReducer = queue.lastRenderedReducer;
+
+      if (lastRenderedReducer !== null) {
+        let prevDispatcher = null;
+
+        try {
+          const currentState: S = (queue.lastRenderedState: any);
+          const eagerState = lastRenderedReducer(currentState, action);
+
+          update.hasEagerState = true;
+          update.eagerState = eagerState;
+          if (is(eagerState, currentState)) {
+            enqueueConcurrentHookUpdateAndEagerlyBailout(fiber, queue, update);
+            return false;
+          }
+        } catch (error) {
+        } finally {
+        }
+      }
+    }
+
+    const root = enqueueConcurrentHookUpdate(fiber, queue, update, lane);
+    if (root !== null) {
+      scheduleUpdateOnFiber(root, fiber, lane);
+      entangleTransitionUpdate(root, queue, lane);
+      return true;
+    }
+  }
+  return false;
+}
+
+function mountStateImpl<S>(initialState: (() => S) | S): Hook {
+  const hook = mountWorkInProgressHook();
+  if (typeof initialState === 'function') {
+    const initialStateInitializer = initialState;
+    initialState = initialStateInitializer();
+  }
+  
+  hook.memoizedState = hook.baseState = initialState;
+  const queue: UpdateQueue<S, BasicStateAction<S>> = {
+    pending: null,
+    lanes: NoLanes,
+    dispatch: null,
+    lastRenderedReducer: basicStateReducer,
+    lastRenderedState: (initialState: any),
+  };
+  hook.queue = queue;
+  return hook;
+}
+
+function mountState<S>(
+  initialState: (() => S) | S,
+): [S, Dispatch<BasicStateAction<S>>] {
+  const hook = mountStateImpl(initialState);
+  const queue = hook.queue;
+  const dispatch: Dispatch<BasicStateAction<S>> = (dispatchSetState.bind(
+    null,
+    currentlyRenderingFiber,
+    queue,
+  ): any);
+  queue.dispatch = dispatch;
+  return [hook.memoizedState, dispatch];
+}
+
+function updateState<S>(
+  initialState: (() => S) | S,
+): [S, Dispatch<BasicStateAction<S>>] {
+  return updateReducer(basicStateReducer, initialState);
+}
+
+function rerenderState<S>(
+  initialState: (() => S) | S,
+): [S, Dispatch<BasicStateAction<S>>] {
+  return rerenderReducer(basicStateReducer, initialState);
+}
+```
+**basicStateReducer**
+- state와 action을 받아 새로운 상태를 반환합니다.
+
+**dispatchSetStateInternal**
+- `useState`의 `setState` 역할을 합니다.
+- `Update`를 선언합니다.
+- render phase면 `queue.pending`에 추가합니다.
+- `eagerState` 상태를 미리 계산하고, `currentState`와 `Object.is`로 비교합니다.
+- 변경되었다면 `ConcurrentQueue`에 추가하고 스케줄링합니다. 
+- `useTransition`의 `startTransition`에서 재사용됩니다.
+
+**mountStateImpl**
+- `initialState`가 함수일 경우 실행한 후 값을 `hook.memoizedState`, `hook.baseState`에 할당합니다.
+- `queue`를 선언하고 `hook.queue`에 할당합니다.
+- `useTransition`의 `mountTransition`에서 재사용됩니다.
+
+**mountState**
+- `hook`, `dispatch(setState)`를 생성하고 반환합니다. 
+
+**updateState**
+- `basicStateReducer`를 reducer로 사용하여 `useReducer`에서 update 시 사용되는 `updateReducer`를 호출합니다.
+- `useTransition`의 `updateTransition`에서 재사용됩니다.
+
+**rerenderState**
+- `basicStateReducer`를 reducer로 사용하여 `useReducer`에서 rerender 시 사용되는 `rerenderReducer`를 호출합니다.
+- `useTransition`의 `rerenderTransition`에서 재사용됩니다.
+
+## useTransition
+<Callout type="info" emoji="ℹ️">
+  [`useTransition`](https://react.dev/reference/react/useTransition)은 UI를 차단하지 않고 상태를 업데이트할 수 있습니다.
+</Callout>
+```js filename="react/packages/react-reconciler/src/ReactFiberFlags.js"
+function dispatchOptimisticSetState<S, A>(
+  fiber: Fiber,
+  throwIfDuringRender: boolean,
+  queue: UpdateQueue<S, A>,
+  action: A,
+): void {
+  const transition = requestCurrentTransition();
+
+  const update: Update<S, A> = {
+    lane: SyncLane,
+    revertLane: requestTransitionLane(transition),
+    action,
+    hasEagerState: false,
+    eagerState: null,
+    next: (null: any),
+  };
+
+  if (isRenderPhaseUpdate(fiber)) {
+    if (throwIfDuringRender) {
+      throw new Error('Cannot update optimistic state while rendering.');
+    }
+  } else {
+    const root = enqueueConcurrentHookUpdate(fiber, queue, update, SyncLane);
+    if (root !== null) {
+      startUpdateTimerByLane(SyncLane);
+      scheduleUpdateOnFiber(root, fiber, SyncLane);
+    }
+  }
+}
+
+function startTransition<S>(
+  fiber: Fiber,
+  queue: UpdateQueue<S | Thenable<S>, BasicStateAction<S | Thenable<S>>>,
+  pendingState: S,
+  finishedState: S,
+  callback: () => mixed,
+  options?: StartTransitionOptions,
+): void {
+  const previousPriority = getCurrentUpdatePriority();
+  setCurrentUpdatePriority(
+    higherEventPriority(previousPriority, ContinuousEventPriority),
+  );
+
+  const prevTransition = ReactSharedInternals.T;
+  const currentTransition: BatchConfigTransition = {};
+
+  ReactSharedInternals.T = currentTransition;
+  dispatchOptimisticSetState(fiber, false, queue, pendingState);
+
+  try {
+    const returnValue = callback();
+    const onStartTransitionFinish = ReactSharedInternals.S;
+    if (onStartTransitionFinish !== null) {
+      onStartTransitionFinish(currentTransition, returnValue);
+    }
+
+    if (
+      returnValue !== null &&
+      typeof returnValue === 'object' &&
+      typeof returnValue.then === 'function'
+    ) {
+      const thenable = ((returnValue: any): Thenable<mixed>);
+
+      const thenableForFinishedState = chainThenableValue(
+        thenable,
+        finishedState,
+      );
+      dispatchSetStateInternal(
+        fiber,
+        queue,
+        (thenableForFinishedState: any),
+        requestUpdateLane(fiber),
+      );
+    } else {
+      dispatchSetStateInternal(
+        fiber,
+        queue,
+        finishedState,
+        requestUpdateLane(fiber),
+      );
+    }
+  } catch (error) {
+    const rejectedThenable: RejectedThenable<S> = {
+      then() {},
+      status: 'rejected',
+      reason: error,
+    };
+    dispatchSetStateInternal(
+      fiber,
+      queue,
+      rejectedThenable,
+      requestUpdateLane(fiber),
+    );
+  } finally {
+    setCurrentUpdatePriority(previousPriority);
+
+    ReactSharedInternals.T = prevTransition;
+  }
+}
+
+function mountTransition(): [
+  boolean,
+  (callback: () => void, options?: StartTransitionOptions) => void,
+] {
+  const stateHook = mountStateImpl((false: Thenable<boolean> | boolean));
+
+  const start = startTransition.bind(
+    null,
+    currentlyRenderingFiber,
+    stateHook.queue,
+    true,
+    false,
+  );
+  const hook = mountWorkInProgressHook();
+  hook.memoizedState = start;
+  return [false, start];
+}
+
+function updateTransition(): [
+  boolean,
+  (callback: () => void, options?: StartTransitionOptions) => void,
+] {
+  const [booleanOrThenable] = updateState(false);
+  const hook = updateWorkInProgressHook();
+  const start = hook.memoizedState;
+  const isPending =
+    typeof booleanOrThenable === 'boolean'
+      ? booleanOrThenable
+      : useThenable(booleanOrThenable);
+  return [isPending, start];
+}
+
+function rerenderTransition(): [
+  boolean,
+  (callback: () => void, options?: StartTransitionOptions) => void,
+] {
+  const [booleanOrThenable] = rerenderState(false);
+  const hook = updateWorkInProgressHook();
+  const start = hook.memoizedState;
+  const isPending =
+    typeof booleanOrThenable === 'boolean'
+      ? booleanOrThenable
+      : useThenable(booleanOrThenable);
+  return [isPending, start];
+}
+```
+**dispatchOptimisticSetState**
+- UI를 차단하지 않고 동기적으로 실행되어야 하기 때문에 `SyncLane` 우선순위로 `Update`를 생성합니다.
+- 렌더링 중이지 않으면 작업을 스케줄링합니다.
+- `SyncLane`은 동기적으로 실행되고 상태를 변경하기 때문에 리렌더링일 때 작업을 진행하지 않습니다.
+
+**startTransition**
+- 우선순위 및 전환 상태를 할당합니다.
+- `dispatchOptimisticSetState` 메소드로 `pending=true;`로 변경합니다.
+- `const returnValue = callback();` 실행 결과를 할당합니다.
+- 결과가 thenable일 경우 비동기적으로 상태를 업데이트합니다.
+- 결과가 thenable이 아니면 즉시 상태를 `pending=false;` 업데이트합니다.
+- 에러 발생 시, 거부된 thenable로 상태를 업데이트합니다.
+- 우선순위 및 전환 상태를 복구합니다.
+
+**mountTransition**
+- `hook`을 생성하고 `pending=false;`와 `startTransition`을 반환합니다.
+
+**updateTransition**
+- 현재 상태(`pending`, `startTransition`)를 가져오고 반환합니다.
+
+**rerenderTransition**
+- 현재 상태(`pending`, `startTransition`)를 가져오고 반환합니다.
+
+
+## useDeferredValue
+<Callout type="info" emoji="ℹ️">
+  [`useDeferredValue`](https://react.dev/reference/react/useDeferredValue)는 UI 일부 업데이트를 지연시킬 수 있습니다.
+</Callout>
+```js filename="react/packages/react-reconciler/src/ReactFiberFlags.js"
+function mountDeferredValueImpl<T>(hook: Hook, value: T, initialValue?: T): T {
+  if (
+    initialValue !== undefined &&
+    !includesSomeLane(renderLanes, DeferredLane)
+  ) {
+    hook.memoizedState = initialValue;
+
+    const deferredLane = requestDeferredLane();
+    currentlyRenderingFiber.lanes = mergeLanes(
+      currentlyRenderingFiber.lanes,
+      deferredLane,
+    );
+    markSkippedUpdateLanes(deferredLane);
+
+    return initialValue;
+  } else {
+    hook.memoizedState = value;
+    return value;
+  }
+}
+
+function updateDeferredValueImpl<T>(
+  hook: Hook,
+  prevValue: T,
+  value: T,
+  initialValue?: T,
+): T {
+  if (is(value, prevValue)) {
+    return value;
+  } else {
+    if (isCurrentTreeHidden()) {
+      const resultValue = mountDeferredValueImpl(hook, value, initialValue);
+
+      if (!is(resultValue, prevValue)) {
+        markWorkInProgressReceivedUpdate();
+      }
+
+      return resultValue;
+    }
+
+    const shouldDeferValue = !includesOnlyNonUrgentLanes(renderLanes);
+    if (shouldDeferValue) {
+      const deferredLane = requestDeferredLane();
+      currentlyRenderingFiber.lanes = mergeLanes(
+        currentlyRenderingFiber.lanes,
+        deferredLane,
+      );
+      markSkippedUpdateLanes(deferredLane);
+
+      return prevValue;
+    } else {
+      markWorkInProgressReceivedUpdate();
+      hook.memoizedState = value;
+      return value;
+    }
+  }
+}
+
+function mountDeferredValue<T>(value: T, initialValue?: T): T {
+  const hook = mountWorkInProgressHook();
+  return mountDeferredValueImpl(hook, value, initialValue);
+}
+
+function updateDeferredValue<T>(value: T, initialValue?: T): T {
+  const hook = updateWorkInProgressHook();
+  const resolvedCurrentHook: Hook = (currentHook: any);
+  const prevValue: T = resolvedCurrentHook.memoizedState;
+  return updateDeferredValueImpl(hook, prevValue, value, initialValue);
+}
+
+function rerenderDeferredValue<T>(value: T, initialValue?: T): T {
+  const hook = updateWorkInProgressHook();
+  if (currentHook === null) {
+    return mountDeferredValueImpl(hook, value, initialValue);
+  } else {
+    const prevValue: T = currentHook.memoizedState;
+    return updateDeferredValueImpl(hook, prevValue, value, initialValue);
+  }
+}
+```
+**mountDeferredValueImpl**
+- `initialValue`가 주어지고 현재 렌더링이 지연되지 않았다면 초기 값을 상태로 설정합니다.
+- `DeferredLane` 우선 순위를 변경하고 현재 컴포넌트의 렌더링 우선순위를 조정합니다.
+- 그렇지 않으면 `value`를 `memoizedState`에 할당합니다.
+
+**updateDeferredValueImpl**
+- `value`와 `prevValue`를 `Object.is`로 비교하여 동일하면 그대로 반환합니다.
+- `isCurrentTreeHidden`이 `true`라면, 다시 초기화(`mountDeferredValueImpl`)합니다.
+- 현재 렌더링의 우선순위가 응급하다면 (`SyncLane`, `InputContinuousLane`, `DefaultLane`) 값 지연 처리를 설정하고 이전 값을 유지합니다.
+- 현재 렌더링의 우선순위가 응급하지 않다면 상태를 업데이트하고 새로운 값을 반환합니다.
+
+
+**mountDeferredValue**
+- `Hook`을 생성하고 `mountDeferredValueImpl`를 호출하여 초기 값을 반환합니다.
+
+**updateDeferredValue**
+- `prevValue` (`currentHook.memoizedState`)를 `updateDeferredValueImpl`의 인자로 넘긴 값을 반환합니다.
+
+**rerenderDeferredValue**
+- `currentHook` 존재 여부에 따라 `mountDeferredValueImpl`, `updateDeferredValueImpl`를 호출하고 반환합니다.
+
 ## useEffect
 <Callout type="info" emoji="ℹ️">
   [`useEffect`](https://react.dev/reference/react/useEffect)는 외부 시스템과 컴포넌트를 동기화하는 데 사용됩니다.
@@ -1026,450 +1820,6 @@ function updateInsertionEffect(
 
 > [HookEffectTags](/blog/react/reconciler/hook-effect-tags)를 참조하세요.
 
-## useReducer
-<Callout type="info" emoji="ℹ️">
-  [`useReducer`](https://react.dev/reference/react/useReducer)는 state를 action 기반으로 변형 할 수 있게 합니다.
-</Callout>
-```js filename="react/packages/react-reconciler/src/ReactFiberFlags.js"
-let currentlyRenderingFiber: Fiber = (null: any);
-
-function isRenderPhaseUpdate(fiber: Fiber): boolean {
-  const alternate = fiber.alternate;
-  return (
-    fiber === currentlyRenderingFiber ||
-    (alternate !== null && alternate === currentlyRenderingFiber)
-  );
-}
-
-function dispatchReducerAction<S, A>(
-  fiber: Fiber,
-  queue: UpdateQueue<S, A>,
-  action: A,
-): void {
-  const lane = requestUpdateLane(fiber);
-
-  const update: Update<S, A> = {
-    lane,
-    revertLane: NoLane,
-    action,
-    hasEagerState: false,
-    eagerState: null,
-    next: (null: any),
-  };
-
-  if (isRenderPhaseUpdate(fiber)) {
-    enqueueRenderPhaseUpdate(queue, update);
-  } else {
-    const root = enqueueConcurrentHookUpdate(fiber, queue, update, lane);
-    if (root !== null) {
-      startUpdateTimerByLane(lane);
-      scheduleUpdateOnFiber(root, fiber, lane);
-      entangleTransitionUpdate(root, queue, lane);
-    }
-  }
-}
-
-function mountReducer<S, I, A>(
-  reducer: (S, A) => S,
-  initialArg: I,
-  init?: I => S,
-): [S, Dispatch<A>] {
-  const hook = mountWorkInProgressHook();
-
-  let initialState;
-  if (init !== undefined) {
-    initialState = init(initialArg);
-  } else {
-    initialState = ((initialArg: any): S);
-  }
-
-  hook.memoizedState = hook.baseState = initialState;
-  
-  const queue: UpdateQueue<S, A> = {
-    pending: null,
-    lanes: NoLanes,
-    dispatch: null,
-    lastRenderedReducer: reducer,
-    lastRenderedState: (initialState: any),
-  };
-
-  hook.queue = queue;
-
-  const dispatch: Dispatch<A> = (queue.dispatch = (dispatchReducerAction.bind(
-    null,
-    currentlyRenderingFiber,
-    queue,
-  ): any));
-
-  return [hook.memoizedState, dispatch];
-}
-
-function updateReducer<S, I, A>(
-  reducer: (S, A) => S,
-  initialArg: I,
-  init?: I => S,
-): [S, Dispatch<A>] {
-  const hook = updateWorkInProgressHook();
-  return updateReducerImpl(hook, ((currentHook: any): Hook), reducer);
-}
-
-function updateReducerImpl<S, A>(
-  hook: Hook,
-  current: Hook,
-  reducer: (S, A) => S,
-): [S, Dispatch<A>] {
-  const queue = hook.queue;
-
-  if (queue === null) {
-    throw new Error(
-      'Should have a queue. You are likely calling Hooks conditionally, ' +
-        'which is not allowed. (https://react.dev/link/invalid-hook-call)',
-    );
-  }
-
-  queue.lastRenderedReducer = reducer;
-
-  let baseQueue = hook.baseQueue;
-
-  const pendingQueue = queue.pending;
-  if (pendingQueue !== null) {
-    if (baseQueue !== null) {
-      const baseFirst = baseQueue.next;
-      const pendingFirst = pendingQueue.next;
-      baseQueue.next = pendingFirst;
-      pendingQueue.next = baseFirst;
-    }
-    current.baseQueue = baseQueue = pendingQueue;
-    queue.pending = null;
-  }
-
-  const baseState = hook.baseState;
-  if (baseQueue === null) {
-    hook.memoizedState = baseState;
-  } else {
-    const first = baseQueue.next;
-    let newState = baseState;
-
-    let newBaseState = null;
-    let newBaseQueueFirst = null;
-    let newBaseQueueLast: Update<S, A> | null = null;
-    let update = first;
-    let didReadFromEntangledAsyncAction = false;
-
-    do {
-      const updateLane = removeLanes(update.lane, OffscreenLane);
-      const isHiddenUpdate = updateLane !== update.lane;
-
-      const shouldSkipUpdate = isHiddenUpdate
-        ? !isSubsetOfLanes(getWorkInProgressRootRenderLanes(), updateLane)
-        : !isSubsetOfLanes(renderLanes, updateLane);
-
-      if (shouldSkipUpdate) {
-        const clone: Update<S, A> = {
-          lane: updateLane,
-          revertLane: update.revertLane,
-          action: update.action,
-          hasEagerState: update.hasEagerState,
-          eagerState: update.eagerState,
-          next: (null: any),
-        };
-        if (newBaseQueueLast === null) {
-          newBaseQueueFirst = newBaseQueueLast = clone;
-          newBaseState = newState;
-        } else {
-          newBaseQueueLast = newBaseQueueLast.next = clone;
-        }
-        currentlyRenderingFiber.lanes = mergeLanes(
-          currentlyRenderingFiber.lanes,
-          updateLane,
-        );
-        markSkippedUpdateLanes(updateLane);
-      } else {
-        const revertLane = update.revertLane;
-        if (revertLane === NoLane) {
-          if (newBaseQueueLast !== null) {
-            const clone: Update<S, A> = {
-              lane: NoLane,
-              revertLane: NoLane,
-              action: update.action,
-              hasEagerState: update.hasEagerState,
-              eagerState: update.eagerState,
-              next: (null: any),
-            };
-            newBaseQueueLast = newBaseQueueLast.next = clone;
-          }
-          if (updateLane === peekEntangledActionLane()) {
-            didReadFromEntangledAsyncAction = true;
-          }
-        } else {
-          if (isSubsetOfLanes(renderLanes, revertLane)) {
-            update = update.next;
-
-            if (revertLane === peekEntangledActionLane()) {
-              didReadFromEntangledAsyncAction = true;
-            }
-            continue;
-          } else {
-            const clone: Update<S, A> = {
-              lane: NoLane,
-              revertLane: update.revertLane,
-              action: update.action,
-              hasEagerState: update.hasEagerState,
-              eagerState: update.eagerState,
-              next: (null: any),
-            };
-            if (newBaseQueueLast === null) {
-              newBaseQueueFirst = newBaseQueueLast = clone;
-              newBaseState = newState;
-            } else {
-              newBaseQueueLast = newBaseQueueLast.next = clone;
-            }
-
-            currentlyRenderingFiber.lanes = mergeLanes(
-              currentlyRenderingFiber.lanes,
-              revertLane,
-            );
-            markSkippedUpdateLanes(revertLane);
-          }
-        }
-
-        const action = update.action;
-        if (update.hasEagerState) {
-          newState = ((update.eagerState: any): S);
-        } else {
-          newState = reducer(newState, action);
-        }
-      }
-      update = update.next;
-    } while (update !== null && update !== first);
-
-    if (newBaseQueueLast === null) {
-      newBaseState = newState;
-    } else {
-      newBaseQueueLast.next = (newBaseQueueFirst: any);
-    }
-
-    if (!is(newState, hook.memoizedState)) {
-      markWorkInProgressReceivedUpdate();
-
-      if (didReadFromEntangledAsyncAction) {
-        const entangledActionThenable = peekEntangledActionThenable();
-        if (entangledActionThenable !== null) {
-          throw entangledActionThenable;
-        }
-      }
-    }
-
-    hook.memoizedState = newState;
-    hook.baseState = newBaseState;
-    hook.baseQueue = newBaseQueueLast;
-
-    queue.lastRenderedState = newState;
-  }
-
-  if (baseQueue === null) {
-    queue.lanes = NoLanes;
-  }
-
-  const dispatch: Dispatch<A> = (queue.dispatch: any);
-  return [hook.memoizedState, dispatch];
-}
-
-function rerenderReducer<S, I, A>(
-  reducer: (S, A) => S,
-  initialArg: I,
-  init?: I => S,
-): [S, Dispatch<A>] {
-  const hook = updateWorkInProgressHook();
-  const queue = hook.queue;
-
-  if (queue === null) {
-    throw new Error(
-      'Should have a queue. You are likely calling Hooks conditionally, ' +
-        'which is not allowed. (https://react.dev/link/invalid-hook-call)',
-    );
-  }
-
-  queue.lastRenderedReducer = reducer;
-
-  const dispatch: Dispatch<A> = (queue.dispatch: any);
-  const lastRenderPhaseUpdate = queue.pending;
-  let newState = hook.memoizedState;
-  if (lastRenderPhaseUpdate !== null) {
-    queue.pending = null;
-
-    const firstRenderPhaseUpdate = lastRenderPhaseUpdate.next;
-    let update = firstRenderPhaseUpdate;
-    do {
-      const action = update.action;
-      newState = reducer(newState, action);
-      update = update.next;
-    } while (update !== firstRenderPhaseUpdate);
-
-    if (!is(newState, hook.memoizedState)) {
-      markWorkInProgressReceivedUpdate();
-    }
-
-    hook.memoizedState = newState;
-
-    if (hook.baseQueue === null) {
-      hook.baseState = newState;
-    }
-
-    queue.lastRenderedState = newState;
-  }
-  return [newState, dispatch];
-}
-```
-**isRenderPhaseUpdate**
-- 현재 `fiber` 혹은 `fiber.alternate`가 작업 중인 `fiber`와 같다면 render phase로 `true`를 반환합니다.
-
-**dispatchReducerAction**
-- `useReducer`의 `dispatch` 함수 역할을 합니다.
-- action이 발생할 때마다 새로운 update 객체를 생성합니다.
-- render phase면 `queue.pending`에 추가합니다.
-- render phase가 아니면 concurrent 업데이트로 처리하고 fiber를 스케줄링합니다.
-
-**mountReducer**
-- `init` 초기화 함수가 있다면 실행하고 아니면 `initialArg` 초기 값을 지정합니다.
-- `queue`, `dispatch` 함수를 선언하고 반환합니다.
-
-**updateReducer**
-- `hook.queue.pending`가 있다면 `hook.baseQueue`에 병합시킵니다.
-- `hook.baseQueue` 없으면 현재 상태 `baseState`를 `memoizedState`에 할당하고 반환합니다.
-- `hook.baseQueue`를 순회하며 update를 skip할지 결정(`OffscreenLane`)하고 비동기 작업을 예약하며 `eagerState`, `reducer`를 사용하여 업데이트합니다.
-- 예약된 비동기 작업을 처리하고 반환합니다. 
-
-**rerenderReducer**
-- `dispatch` 메소드에서 render phase라면 `queue.pending`에 `update`가 추가됩니다. 
-- 현재 작업 중인 `hook`에 `queue.pending`이 있다면 작업을 모두 실행시킵니다.
-
-## useState
-<Callout type="info" emoji="ℹ️">
-  [`useState`](https://react.dev/reference/react/useState)는 상태와 상태를 변경할 수 있는 dispatch 함수를 제공합니다.
-</Callout>
-```js filename="react/packages/react-reconciler/src/ReactFiberFlags.js"
-function basicStateReducer<S>(state: S, action: BasicStateAction<S>): S {
-  return typeof action === 'function' ? action(state) : action;
-}
-
-function dispatchSetState<S, A>(
-  fiber: Fiber,
-  queue: UpdateQueue<S, A>,
-  action: A,
-): void {
-  const lane = requestUpdateLane(fiber);
-  const didScheduleUpdate = dispatchSetStateInternal(
-    fiber,
-    queue,
-    action,
-    lane,
-  );
-  if (didScheduleUpdate) {
-    startUpdateTimerByLane(lane);
-  }
-}
-
-function dispatchSetStateInternal<S, A>(
-  fiber: Fiber,
-  queue: UpdateQueue<S, A>,
-  action: A,
-  lane: Lane,
-): boolean {
-  const update: Update<S, A> = {
-    lane,
-    revertLane: NoLane,
-    action,
-    hasEagerState: false,
-    eagerState: null,
-    next: (null: any),
-  };
-
-  if (isRenderPhaseUpdate(fiber)) {
-    enqueueRenderPhaseUpdate(queue, update);
-  } else {
-    const alternate = fiber.alternate;
-    if (
-      fiber.lanes === NoLanes &&
-      (alternate === null || alternate.lanes === NoLanes)
-    ) {
-      const lastRenderedReducer = queue.lastRenderedReducer;
-
-      if (lastRenderedReducer !== null) {
-        let prevDispatcher = null;
-
-        try {
-          const currentState: S = (queue.lastRenderedState: any);
-          const eagerState = lastRenderedReducer(currentState, action);
-
-          update.hasEagerState = true;
-          update.eagerState = eagerState;
-          if (is(eagerState, currentState)) {
-            enqueueConcurrentHookUpdateAndEagerlyBailout(fiber, queue, update);
-            return false;
-          }
-        } catch (error) {
-        } finally {
-        }
-      }
-    }
-
-    const root = enqueueConcurrentHookUpdate(fiber, queue, update, lane);
-    if (root !== null) {
-      scheduleUpdateOnFiber(root, fiber, lane);
-      entangleTransitionUpdate(root, queue, lane);
-      return true;
-    }
-  }
-  return false;
-}
-
-function mountStateImpl<S>(initialState: (() => S) | S): Hook {
-  const hook = mountWorkInProgressHook();
-  if (typeof initialState === 'function') {
-    const initialStateInitializer = initialState;
-    initialState = initialStateInitializer();
-  }
-  
-  hook.memoizedState = hook.baseState = initialState;
-  const queue: UpdateQueue<S, BasicStateAction<S>> = {
-    pending: null,
-    lanes: NoLanes,
-    dispatch: null,
-    lastRenderedReducer: basicStateReducer,
-    lastRenderedState: (initialState: any),
-  };
-  hook.queue = queue;
-  return hook;
-}
-
-function mountState<S>(
-  initialState: (() => S) | S,
-): [S, Dispatch<BasicStateAction<S>>] {
-  const hook = mountStateImpl(initialState);
-  const queue = hook.queue;
-  const dispatch: Dispatch<BasicStateAction<S>> = (dispatchSetState.bind(
-    null,
-    currentlyRenderingFiber,
-    queue,
-  ): any);
-  queue.dispatch = dispatch;
-  return [hook.memoizedState, dispatch];
-}
-
-function updateState<S>(
-  initialState: (() => S) | S,
-): [S, Dispatch<BasicStateAction<S>>] {
-  return updateReducer(basicStateReducer, initialState);
-}
-
-function rerenderState<S>(
-  initialState: (() => S) | S,
-): [S, Dispatch<BasicStateAction<S>>] {
-  return rerenderReducer(basicStateReducer, initialState);
-}
-```
-
 ## useSyncExternalStore
 <Callout type="info" emoji="ℹ️">
   [`useSyncExternalStore`](https://react.dev/reference/react/useSyncExternalStore)는 외부 store를 구독할 수 있게 합니다.
@@ -1663,218 +2013,35 @@ function forceStoreRerender(fiber: Fiber) {
   }
 }
 ```
+**mountSyncExternalStore**
+- `getIsHydrating()`, server side라면 getServerSnapshot을 호출하고 `nextSnapshot`에 할당합니다.
+- `getIsHydrating()`, client side라면 getSnapshot을 호출하고 `nextSnapshot`에 할당합니다.
+- 현재 렌더링 중인 `Fiber`의 우선순위가 Blocking Lane에 포함되지 않으면 스토어의 일관성을 확인하기 위한 `pushStoreConsistencyCheck`를 실행합니다.
+- `subscribe` 메소드가 변경되는 것을 감지하기 위해 `mountEffect`를 실행합니다.
+- 이전 스냅샷과 비교를 위한 `updateStoreInstance`를 매개변수로 `pushSimpleEffect`를 실행합니다.
+- `nextSnapshot`을 반환합니다.
 
-## useTransition
-<Callout type="info" emoji="ℹ️">
-  [`useTransition`](https://react.dev/reference/react/useTransition)은 UI를 차단하지 않고 상태를 업데이트할 수 있습니다.
-</Callout>
-```js filename="react/packages/react-reconciler/src/ReactFiberFlags.js"
-function startTransition<S>(
-  fiber: Fiber,
-  queue: UpdateQueue<S | Thenable<S>, BasicStateAction<S | Thenable<S>>>,
-  pendingState: S,
-  finishedState: S,
-  callback: () => mixed,
-  options?: StartTransitionOptions,
-): void {
-  const previousPriority = getCurrentUpdatePriority();
-  setCurrentUpdatePriority(
-    higherEventPriority(previousPriority, ContinuousEventPriority),
-  );
 
-  const prevTransition = ReactSharedInternals.T;
-  const currentTransition: BatchConfigTransition = {};
+**updateSyncExternalStore**
+- `getIsHydrating()`, server side라면 getServerSnapshot을 호출하고 `nextSnapshot`에 할당합니다.
+- `getIsHydrating()`, client side라면 getSnapshot을 호출하고 `nextSnapshot`에 할당합니다.
+- `subscribe` 메소드가 변경되는 것을 감지하기 위해 `updateEffect`를 실행합니다.
+- `getSnapshot`메소드가 변경되었거나 `snapshot`이 변경되고 HookEffectTag가 있다면 이전 스냅샷과 비교를 위한 `updateStoreInstance`를 매개변수로 `pushSimpleEffect`를 실행합니다.
+  - 현재 렌더링 중인 `Fiber`의 우선순위가 Blocking Lane에 포함되지 않으면 스토어의 일관성을 확인하기 위한 `pushStoreConsistencyCheck`를 실행합니다.
+- `nextSnapshot`을 반환합니다.
 
-  ReactSharedInternals.T = currentTransition;
-  dispatchOptimisticSetState(fiber, false, queue, pendingState);
+**pushStoreConsistencyCheck**
+- 해당 메소드는 mount 시, update 시 snapshot이 변경될 때만 실행됩니다.
+- `StoreConsistencyCheck` 객체를 생성하고, `fiber.updateQueue.stores`에 추가합니다.
 
-  if (enableTransitionTracing) {
-    if (options !== undefined && options.name !== undefined) {
-      currentTransition.name = options.name;
-      currentTransition.startTime = now();
-    }
-  }
+**updateStoreInstance**
+- `checkIfSnapshotChanged` 스냅샷이 변경 됨을 확인하고, `forceStoreRerender` 리렌더링합니다.
 
-  try {
-    const returnValue = callback();
-    const onStartTransitionFinish = ReactSharedInternals.S;
-    if (onStartTransitionFinish !== null) {
-      onStartTransitionFinish(currentTransition, returnValue);
-    }
+**subscribeToStore**
+- `checkIfSnapshotChanged` 스냅샷이 변경 됨을 확인하고, `forceStoreRerender` 리렌더링하는 메소드를 `subscribe` 메소드의 콜백으로 넘깁니다.
 
-    if (
-      returnValue !== null &&
-      typeof returnValue === 'object' &&
-      typeof returnValue.then === 'function'
-    ) {
-      const thenable = ((returnValue: any): Thenable<mixed>);
+**checkIfSnapshotChanged**
+- 스냅샷이 변경되었는지 확인합니다.
 
-      const thenableForFinishedState = chainThenableValue(
-        thenable,
-        finishedState,
-      );
-      dispatchSetStateInternal(
-        fiber,
-        queue,
-        (thenableForFinishedState: any),
-        requestUpdateLane(fiber),
-      );
-    } else {
-      dispatchSetStateInternal(
-        fiber,
-        queue,
-        finishedState,
-        requestUpdateLane(fiber),
-      );
-    }
-  } catch (error) {
-    const rejectedThenable: RejectedThenable<S> = {
-      then() {},
-      status: 'rejected',
-      reason: error,
-    };
-    dispatchSetStateInternal(
-      fiber,
-      queue,
-      rejectedThenable,
-      requestUpdateLane(fiber),
-    );
-  } finally {
-    setCurrentUpdatePriority(previousPriority);
-
-    ReactSharedInternals.T = prevTransition;
-  }
-}
-
-function mountTransition(): [
-  boolean,
-  (callback: () => void, options?: StartTransitionOptions) => void,
-] {
-  const stateHook = mountStateImpl((false: Thenable<boolean> | boolean));
-
-  const start = startTransition.bind(
-    null,
-    currentlyRenderingFiber,
-    stateHook.queue,
-    true,
-    false,
-  );
-  const hook = mountWorkInProgressHook();
-  hook.memoizedState = start;
-  return [false, start];
-}
-
-function updateTransition(): [
-  boolean,
-  (callback: () => void, options?: StartTransitionOptions) => void,
-] {
-  const [booleanOrThenable] = updateState(false);
-  const hook = updateWorkInProgressHook();
-  const start = hook.memoizedState;
-  const isPending =
-    typeof booleanOrThenable === 'boolean'
-      ? booleanOrThenable
-      : useThenable(booleanOrThenable);
-  return [isPending, start];
-}
-
-function rerenderTransition(): [
-  boolean,
-  (callback: () => void, options?: StartTransitionOptions) => void,
-] {
-  const [booleanOrThenable] = rerenderState(false);
-  const hook = updateWorkInProgressHook();
-  const start = hook.memoizedState;
-  const isPending =
-    typeof booleanOrThenable === 'boolean'
-      ? booleanOrThenable
-      : useThenable(booleanOrThenable);
-  return [isPending, start];
-}
-```
-
-## useDeferredValue
-<Callout type="info" emoji="ℹ️">
-  [`useDeferredValue`](https://react.dev/reference/react/useDeferredValue)는 UI 일부 업데이트를 지연시킬 수 있습니다.
-</Callout>
-```js filename="react/packages/react-reconciler/src/ReactFiberFlags.js"
-function mountDeferredValue<T>(value: T, initialValue?: T): T {
-  const hook = mountWorkInProgressHook();
-  return mountDeferredValueImpl(hook, value, initialValue);
-}
-
-function updateDeferredValue<T>(value: T, initialValue?: T): T {
-  const hook = updateWorkInProgressHook();
-  const resolvedCurrentHook: Hook = (currentHook: any);
-  const prevValue: T = resolvedCurrentHook.memoizedState;
-  return updateDeferredValueImpl(hook, prevValue, value, initialValue);
-}
-
-function rerenderDeferredValue<T>(value: T, initialValue?: T): T {
-  const hook = updateWorkInProgressHook();
-  if (currentHook === null) {
-    return mountDeferredValueImpl(hook, value, initialValue);
-  } else {
-    const prevValue: T = currentHook.memoizedState;
-    return updateDeferredValueImpl(hook, prevValue, value, initialValue);
-  }
-}
-
-function mountDeferredValueImpl<T>(hook: Hook, value: T, initialValue?: T): T {
-  if (
-    initialValue !== undefined &&
-    !includesSomeLane(renderLanes, DeferredLane)
-  ) {
-    hook.memoizedState = initialValue;
-
-    const deferredLane = requestDeferredLane();
-    currentlyRenderingFiber.lanes = mergeLanes(
-      currentlyRenderingFiber.lanes,
-      deferredLane,
-    );
-    markSkippedUpdateLanes(deferredLane);
-
-    return initialValue;
-  } else {
-    hook.memoizedState = value;
-    return value;
-  }
-}
-
-function updateDeferredValueImpl<T>(
-  hook: Hook,
-  prevValue: T,
-  value: T,
-  initialValue?: T,
-): T {
-  if (is(value, prevValue)) {
-    return value;
-  } else {
-    if (isCurrentTreeHidden()) {
-      const resultValue = mountDeferredValueImpl(hook, value, initialValue);
-
-      if (!is(resultValue, prevValue)) {
-        markWorkInProgressReceivedUpdate();
-      }
-
-      return resultValue;
-    }
-
-    const shouldDeferValue = !includesOnlyNonUrgentLanes(renderLanes);
-    if (shouldDeferValue) {
-      const deferredLane = requestDeferredLane();
-      currentlyRenderingFiber.lanes = mergeLanes(
-        currentlyRenderingFiber.lanes,
-        deferredLane,
-      );
-      markSkippedUpdateLanes(deferredLane);
-
-      return prevValue;
-    } else {
-      markWorkInProgressReceivedUpdate();
-      hook.memoizedState = value;
-      return value;
-    }
-  }
-}
-```
+**forceStoreRerender**
+- 업데이트를 스케줄링합니다.

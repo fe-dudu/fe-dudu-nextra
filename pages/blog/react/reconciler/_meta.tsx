@@ -17,11 +17,11 @@ export default {
   lane: {
     title: 'Lane',
   },
-  'fiber-flags': {
-    title: 'FiberFlags',
-  },
   'hook-effect-tags': {
     title: 'HookEffectTags',
+  },
+  'fiber-flags': {
+    title: 'FiberFlags',
   },
   worktags: {
     title: 'WorkTags',
