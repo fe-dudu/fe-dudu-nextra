@@ -1,12 +1,12 @@
 export default {
-  'web-vitals': {
-    title: 'Core Web Vitals',
+  'async-state': {
+    title: 'Async state',
   },
-  jwt: {
-    title: 'JWT',
+  'expo-error': {
+    title: 'pnpm expo router error',
   },
-  cors: {
-    title: 'CORS',
+  'terminal-ascii-art': {
+    title: 'Terminal ASCII art',
   },
   'reflow-repaint': {
     title: 'Reflow, Repaint',
@@ -17,10 +17,13 @@ export default {
   'api-design-first': {
     title: 'API design first',
   },
-  'terminal-ascii-art': {
-    title: 'Terminal ASCII art',
+  'web-vitals': {
+    title: 'Core Web Vitals',
   },
-  'expo-error': {
-    title: 'pnpm expo router error',
+  jwt: {
+    title: 'JWT',
+  },
+  cors: {
+    title: 'CORS',
   },
 }

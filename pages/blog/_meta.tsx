@@ -12,13 +12,13 @@ export default {
     title: 'TypeScript',
   },
   node: {
-    title: 'Node',
+    title: 'Node.js',
   },
   test: {
     title: 'Test',
   },
-  github: {
-    title: 'Github',
+  git: {
+    title: 'Git',
   },
   etc: {
     title: 'Etc',

@@ -1,4 +1,7 @@
 export default {
+  'work-ethic': {
+    title: '💭 Work ethic',
+  },
   '2nd-switch-jobs': {
     title: '💭 2번째 이직',
   },
