@@ -1,6 +1,6 @@
 export default {
   'async-state': {
-    title: 'Async state',
+    title: 'Async state (Tanstack-Query)',
   },
   'expo-error': {
     title: 'pnpm expo router error',
