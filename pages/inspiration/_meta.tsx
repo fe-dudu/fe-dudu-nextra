@@ -1,4 +1,7 @@
 export default {
+  pueblo: {
+    title: '🎧 Pueblo',
+  },
   'work-ethic': {
     title: '💭 Work ethic',
   },
