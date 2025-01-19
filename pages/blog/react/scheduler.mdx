@@ -450,7 +450,7 @@ function cancelHostTimeout() {
 1. `startTime`을 현재 시간으로 설정하고 flushWork를 호출하여 현재 작업 큐에 있는 작업을 처리합니다.
 2. `flushWork`에서 에러가 생기더라도, `finally`에서 실행시키기 위해(작업을 이어나가기 위해) `let hasMoreWork = true;{:js}` 작업이 있을 것으로 처리합니다.
 3. 처리할 작업이 더 남아 있다면, `schedulePerformWorkUntilDeadline`을 호출하여 반복 실행합니다.
-4 작업이 모두 완료되면 `isMessageLoopRunning = false{:js}` 처리합니다.
+4. 작업이 모두 완료되면 `isMessageLoopRunning = false{:js}` 처리합니다.
 
 ### `schedulePerformWorkUntilDeadline`
 `performWorkUntilDeadline`에서 작업을 마치지 않았을 때 `performWorkUntilDeadline`을 스케줄링합니다.
