@@ -35,6 +35,13 @@ const config: DocsThemeConfig = {
   search: {
     placeholder: '검색어를 입력하세요.',
   },
+  navbar: {
+    extraContent: (
+      <a href="https://www.linkedin.com/in/fe-dudu" target="_blank" rel="noopener noreferrer">
+        <Image src="/linkedin.svg" width={27} height={27} alt="LinkedIn" />
+      </a>
+    ),
+  },
   sidebar: {
     defaultMenuCollapseLevel: 1,
   },
