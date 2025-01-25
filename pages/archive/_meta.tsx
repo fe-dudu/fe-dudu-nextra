@@ -1,6 +1,7 @@
 export default {
   'declarative-react': {
     title: 'Declarative React',
+    display: 'hidden',
   },
   mac: {
     title: 'Mac setting',

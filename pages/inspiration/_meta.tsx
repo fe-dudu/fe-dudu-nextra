@@ -1,4 +1,8 @@
 export default {
+  '2nd-switch-jobs': {
+    title: '💭 2번째 이직',
+    display: 'hidden',
+  },
   pueblo: {
     title: '🎧 Pueblo',
   },
