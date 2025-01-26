@@ -18,7 +18,7 @@
         "useButtonType": "off"
       },
       "complexity": {
-        "noBannedTypes": "off"
+        "noBannedTypes": "error"
       },
       "correctness": {
         "noUnusedVariables": "error"
@@ -26,19 +26,19 @@
       "performance": {
         "noBarrelFile": "error",
         "noReExportAll": "error",
-        "noDelete": "off"
+        "noDelete": "error"
       },
       "style": {
-        "noNonNullAssertion": "off",
+        "noNonNullAssertion": "error",
         "useShorthandArrayType": "error"
       },
       "suspicious": {
-        "noArrayIndexKey": "off",
-        "noAssignInExpressions": "off",
-        "noConfusingVoidType": "off",
+        "noArrayIndexKey": "error",
+        "noAssignInExpressions": "error",
+        "noConfusingVoidType": "error",
         "noConsoleLog": "error",
-        "noExplicitAny": "off",
-        "noRedeclare": "off"
+        "noExplicitAny": "error",
+        "noRedeclare": "error"
       }
     }
   },
