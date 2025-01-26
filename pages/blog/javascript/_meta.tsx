@@ -11,7 +11,7 @@ export default {
   'high-order-function': {
     title: 'High order function',
   },
-  'curring': {
-    title: 'Curring'
-  }
-}
+  curring: {
+    title: 'Curring',
+  },
+};

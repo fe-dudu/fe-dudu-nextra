@@ -23,4 +23,4 @@ export default {
   etc: {
     title: 'Etc',
   },
-}
+};

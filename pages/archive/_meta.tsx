@@ -15,4 +15,4 @@ export default {
   slack: {
     title: 'Slack setting',
   },
-}
+};

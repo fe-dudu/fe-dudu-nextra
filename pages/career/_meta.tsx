@@ -5,4 +5,4 @@ export default {
   agilegrowth: {
     title: 'Agilegrowth',
   },
-}
+};

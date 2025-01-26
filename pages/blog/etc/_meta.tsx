@@ -26,4 +26,4 @@ export default {
   cors: {
     title: 'CORS',
   },
-}
+};

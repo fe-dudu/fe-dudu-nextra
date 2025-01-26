@@ -1,4 +1,4 @@
-import nextra from 'nextra'
+import nextra from 'nextra';
 
 const withNextra = nextra({
   autoImportThemeStyle: true,
@@ -17,8 +17,8 @@ const withNextra = nextra({
   },
   codeHighlight: true,
   readingTime: true,
-})
+});
 
 export default withNextra({
   reactStrictMode: true,
-})
+});

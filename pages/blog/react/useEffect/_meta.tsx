@@ -8,4 +8,4 @@ export default {
   'you-might-not-need-an-effect': {
     title: 'You Might Not Need an Effect',
   },
-}
+};

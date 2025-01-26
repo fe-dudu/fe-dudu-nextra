@@ -26,4 +26,4 @@ export default {
   'dynamic-size-list-virtualization': {
     title: 'Dynamic size list virtualization',
   },
-}
+};

@@ -1,4 +1,4 @@
-import React, { PropsWithChildren } from 'react'
+import React, { type PropsWithChildren } from 'react';
 
 export function IframeContainer({ children }: PropsWithChildren) {
   return (
@@ -23,5 +23,5 @@ export function IframeContainer({ children }: PropsWithChildren) {
         },
       })}
     </div>
-  )
+  );
 }

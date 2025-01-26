@@ -5,4 +5,4 @@ export default {
   'react-symbols': {
     title: 'ReactSymbols',
   },
-}
+};

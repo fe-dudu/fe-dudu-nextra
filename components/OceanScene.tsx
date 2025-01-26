@@ -1,29 +1,29 @@
-'use client'
+'use client';
 
-import React, { useRef, useMemo } from 'react'
-import { Canvas, useFrame, extend, useLoader, useThree } from '@react-three/fiber'
-import { OrbitControls, Sky } from '@react-three/drei'
-import * as THREE from 'three'
-import { Water } from 'three-stdlib'
+import { OrbitControls, Sky } from '@react-three/drei';
+import { Canvas, extend, useFrame, useLoader, useThree } from '@react-three/fiber';
+import React, { useRef, useMemo } from 'react';
+import * as THREE from 'three';
+import { Water } from 'three-stdlib';
 
-extend({ Water })
+extend({ Water });
 
 function OceanWater() {
-  const waterRef = useRef()
-  const { scene } = useThree()
+  const waterRef = useRef();
+  const { scene } = useThree();
 
-  const waterNormals = useLoader(THREE.TextureLoader, './waternormals.jpg')
+  const waterNormals = useLoader(THREE.TextureLoader, './waternormals.jpg');
 
   useMemo(() => {
-    waterNormals.wrapS = waterNormals.wrapT = THREE.RepeatWrapping
-  }, [waterNormals])
+    waterNormals.wrapS = waterNormals.wrapT = THREE.RepeatWrapping;
+  }, [waterNormals]);
 
   useFrame(({ clock }) => {
     if (waterRef.current) {
-      const time = clock.getElapsedTime()
-      waterRef.current.material.uniforms.time.value = time
+      const time = clock.getElapsedTime();
+      waterRef.current.material.uniforms.time.value = time;
     }
-  })
+  });
 
   return (
     <water
@@ -44,7 +44,7 @@ function OceanWater() {
       ]}
       rotation={[-Math.PI / 2, 0, 0]}
     />
-  )
+  );
 }
 
 export function OceanScene() {
@@ -76,5 +76,5 @@ export function OceanScene() {
 
       <OrbitControls maxPolarAngle={Math.PI * 0.495} target={[500, 10, 0]} minDistance={40.0} maxDistance={200.0} />
     </Canvas>
-  )
+  );
 }

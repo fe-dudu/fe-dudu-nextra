@@ -1,9 +1,9 @@
-import { Water } from 'three-stdlib'
+import type { Water } from 'three-stdlib';
 
 declare global {
   namespace JSX {
     interface IntrinsicElements {
-      water: ReactThreeFiber.Object3DNode<Water, typeof Water>
+      water: ReactThreeFiber.Object3DNode<Water, typeof Water>;
     }
   }
 }

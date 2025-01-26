@@ -12,5 +12,5 @@ export function Circle({ color }: { color: string }) {
         verticalAlign: 'middle',
       }}
     />
-  )
+  );
 }

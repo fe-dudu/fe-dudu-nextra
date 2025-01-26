@@ -23,4 +23,4 @@ export default {
   vercel: {
     title: 'Vercel 최적화',
   },
-}
+};
