@@ -38,7 +38,7 @@ const config: DocsThemeConfig = {
   navbar: {
     extraContent: (
       <a href="https://www.linkedin.com/in/fe-dudu" target="_blank" rel="noopener noreferrer">
-        <Image src="/linkedin.svg" width={27} height={27} alt="LinkedIn" />
+        <Image src="/linkedin.svg" width={24} height={24} alt="LinkedIn" />
       </a>
     ),
   },
