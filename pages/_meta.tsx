@@ -14,13 +14,10 @@ export default {
   archive: {
     type: 'page',
     title: 'Archive',
+    display: 'hidden',
   },
   article: {
     type: 'page',
     title: 'Article',
-  },
-  inspiration: {
-    type: 'page',
-    title: 'Inspiration',
   },
 };
