@@ -1,4 +1,7 @@
 export default {
+  'chrome-devtools-rendering': {
+    title: 'Chrome devtools - Rendering',
+  },
   'async-state': {
     title: 'Async state (Tanstack-Query)',
   },
