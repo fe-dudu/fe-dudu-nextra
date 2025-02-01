@@ -12,16 +12,14 @@ const config: DocsThemeConfig = {
     const config = useConfig();
     const { asPath } = useRouter();
     const url = `https://www.fe-dudu.com${asPath}`;
-    const title = config.title !== 'Index' ? `${config.title} | FE dudu` : 'FE dudu';
+    const title = config.title !== 'Intro' ? `${config.title}` : 'FE dudu';
     return (
       <>
         <link rel="icon" href="/favicon.ico" type="image/ico" />
         <title>{title}</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <meta name="description" content="김도현" />
-        <meta property="og:title" content={title || 'FE dudu'} />
+        <meta property="og:title" content={title} />
         <meta property="og:url" content={url} />
-        <meta property="og:description" content="김도현" />
       </>
     );
   },
