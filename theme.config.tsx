@@ -15,11 +15,21 @@ const config: DocsThemeConfig = {
     const title = config.title !== 'Intro' ? `${config.title}` : 'FE dudu';
     return (
       <>
-        <link rel="icon" href="/favicon.ico" type="image/ico" />
         <title>{title}</title>
+        <link rel="icon" href="/favicon.ico" type="image/ico" />
+        <link rel="canonical" href={url} />
+        <meta name="robots" content="index, follow" />
+        <meta name="author" content="fe-dudu" />
+        <meta name="keywords" content="fe-dudu 개발 블로그" />
+        <meta property="og:type" content="website" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <meta property="og:title" content={title} />
         <meta property="og:url" content={url} />
+        <meta name="description" content={`${title}에 대하여`} />
+        <meta property="og:title" content={title} />
+        <meta property="og:description" content={`${title}에 대하여`} />
+        <meta property="og:image" content="/favicon.ico" />
+        <meta property="og:url" content={url} />
+        <meta property="og:site_name" content="fe-dudu 개발 블로그" />
       </>
     );
   },
