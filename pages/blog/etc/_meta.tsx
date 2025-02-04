@@ -1,4 +1,7 @@
 export default {
+  'falsy-value-rendering': {
+    title: 'React, React Native falsy value rendering',
+  },
   'chrome-devtools-rendering': {
     title: 'Chrome devtools - Rendering',
   },
