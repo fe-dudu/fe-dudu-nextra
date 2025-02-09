@@ -2,7 +2,7 @@
 
 import { OrbitControls, Sky } from '@react-three/drei';
 import { Canvas, extend, useFrame, useLoader, useThree } from '@react-three/fiber';
-import React, { useRef, useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { Water } from 'three-stdlib';
 
@@ -21,7 +21,10 @@ function OceanWater() {
   useFrame(({ clock }) => {
     if (waterRef.current) {
       const time = clock.getElapsedTime();
-      waterRef.current.material.uniforms.time.value = time;
+      if (waterRef.current) {
+        // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+        (waterRef.current as unknown as any).material.uniforms.time.value = time;
+      }
     }
   });
 

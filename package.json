@@ -5,7 +5,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "check": "biome check --write --unsafe"
+    "format": "biome check --write --unsafe"
   },
   "dependencies": {
     "@react-three/drei": "^9.121.3",
