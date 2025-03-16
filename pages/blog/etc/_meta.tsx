@@ -1,4 +1,10 @@
 export default {
+  playwright: {
+    title: 'Playwright report 인증, 배포',
+  },
+  'PR-reminder-bot': {
+    title: 'PR reminder bot',
+  },
   'falsy-value-rendering': {
     title: 'React, React Native falsy value rendering',
   },
@@ -7,9 +13,6 @@ export default {
   },
   'async-state': {
     title: 'Async state (Tanstack-Query)',
-  },
-  'expo-error': {
-    title: 'pnpm expo router error',
   },
   'terminal-ascii-art': {
     title: 'Terminal ASCII art',
@@ -25,11 +28,5 @@ export default {
   },
   'web-vitals': {
     title: 'Core Web Vitals',
-  },
-  jwt: {
-    title: 'JWT',
-  },
-  cors: {
-    title: 'CORS',
   },
 };
