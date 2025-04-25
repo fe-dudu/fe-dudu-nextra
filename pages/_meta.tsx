@@ -7,15 +7,6 @@ export default {
     type: 'page',
     title: 'Career',
   },
-  blog: {
-    type: 'page',
-    title: 'Blog',
-  },
-  archive: {
-    type: 'page',
-    title: 'Archive',
-    display: 'hidden',
-  },
   article: {
     type: 'page',
     title: 'Article',

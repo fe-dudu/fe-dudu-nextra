@@ -53,7 +53,8 @@ export function Bubble({
       .attr('r', (d) => d.r)
       .style('fill', 'none')
       .style('stroke', '#eee')
-      .style('stroke-width', '2px');
+      .style('stroke-width', '2px')
+      .style('background', '#fff');
 
     nodeGroups
       .append('image')

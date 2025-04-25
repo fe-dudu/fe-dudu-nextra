@@ -30,12 +30,12 @@ const config: DocsThemeConfig = {
         <meta property="og:title" content={title} />
         <meta property="twitter:title" content={title} />
 
-        <meta name="description" content={`${title}에 대하여`} />
-        <meta property="og:description" content={`${title}에 대하여`} />
-        <meta property="twitter:description" content={`${title}에 대하여`} />
+        <meta name="description" content={title} />
+        <meta property="og:description" content={title} />
+        <meta property="twitter:description" content={title} />
 
-        <meta property="og:image" content="/card.png" />
-        <meta property="twitter:image" content="/card.png" />
+        <meta property="og:image" content="/dudu.jpeg" />
+        <meta property="twitter:image" content="/dudu.jpeg" />
         <meta property="twitter:card" content="summary_large_image" />
 
         <meta property="twitter:label1" content="Category" />
